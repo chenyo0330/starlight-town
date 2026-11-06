@@ -1,6 +1,6 @@
 /**
- * 🌟 星光鎮：夢幻小魔女與飛天小貓 (Main Application Controller)
- * 整合：遊戲狀態、雙圈彩色搖桿、注音 UI 渲染、甜美女聲 TTS 對話框與所有系統彈窗
+ * 🌟 星光鎮 v2.0：自然牧場與溪海垂釣篇 (Main Application Controller)
+ * 整合：四大相連地圖、溪釣與海釣、熊熊雜貨鋪買飼料、陽光牧場養羊養雞、餐廳 5 大食譜、小遊戲與換裝
  */
 
 class GameState {
@@ -10,26 +10,38 @@ class GameState {
     this.level = 1;
     this.exp = 20;
     this.maxExp = 100;
-    this.coins = 120;
-    this.shards = 1; // 收集滿 5 顆星光碎片可讓彩虹塔完全恢復色彩
+    this.coins = 150;
+    this.shards = 1;
 
-    // 餐廳食材與庫存
+    // 餐廳與牧場漁獲食材背包
     this.ingredients = {
       strawberry: 3,
       milk: 3,
-      flour: 3
+      flour: 3,
+      egg: 2,
+      wool: 1,
+      mushroom: 2,
+      creekFish: 1,
+      seaFish: 1,
+      shrimp: 1
     };
-    this.showcaseCount = 2; // 初始櫥窗有 2 份帕菲讓小貓代理賣餐
-    this.chestCoins = 50;
 
-    // 餐廳擴建項目
+    // 牧場飼料袋庫存
+    this.feeds = {
+      chickenFeed: 3,
+      sheepFeed: 3
+    };
+
+    this.showcaseCount = 2;
+    this.chestCoins = 50;
+    this.lastCookedRecipe = null;
+
     this.upgrades = {
       breadBunny: false,
       sailorDuck: false,
       umbrellaTables: false
     };
 
-    // 解鎖與穿戴狀態
     this.unlockedItems = ['default_witch', 'flower_helmet', 'default_dress', 'default_boots', 'none', 'pink_helmet', 'chef_hat'];
     this.unlockedVehicles = ['walk', 'bike', 'scooter', 'car_pink', 'unicorn'];
     this.unlockedPets = ['starlight_cat'];
@@ -93,30 +105,28 @@ class GameApp {
     this.currentDialogueText = '';
     this.dialogueCallback = null;
 
-    // 將頁面上所有含有 data-zhuyin 屬性的元素自動轉為國小直排注音排版
     this.renderStaticBopomofo();
 
-    // 初始化 2.5D 世界引擎、餐廳系統、小遊戲系統、換裝小屋系統
     this.world = new window.StarlightWorld('world-canvas', this.state);
     this.restaurant = new window.RestaurantSystem(this.state);
     this.miniGames = new window.MiniGameManager(this.state, this.world);
     this.dressingRoom = new window.DressingRoomSystem(this.state, this.world);
+    this.fishingRanch = new window.FishingAndRanchSystem(this.state, this.world);
 
     window.MiniGames = this.miniGames;
     window.DressingRoom = this.dressingRoom;
     window.Restaurant = this.restaurant;
+    window.FishingRanch = this.fishingRanch;
 
     this.initJoystick();
     this.state.updateHUD();
     this.startMainLoop();
 
-    // 遊戲啟動時顯示 GDD 3 經典範例對話框：
-    // 熊熊店長（ㄒㄩㄥˊ ㄒㄩㄥˊ ㄉㄧㄢˋ ㄓㄤˇ）：「小魔女（ㄒㄧㄠˇ ㄇㄛˊ ㄋㄩˇ），去採些草莓（ㄘㄞˇ ㄒㄧㄝ ㄘㄠˇ ㄇㄟˊ）吧！」
     setTimeout(() => {
       this.showDialogue(
         '熊熊店長',
         'assets/sprites/prop_bear_shop.png',
-        '小魔女，去採些草莓吧！我們一起製作彩虹星光草莓冰淇淋帕菲，收集星光碎片讓小鎮恢復色彩！'
+        '小魔女歡迎回來！現在可以去「陽光牧場」餵小羊跟小雞收雞蛋，還能過木橋去「微風清溪」溪釣，或去「蔚藍海岸」海釣做料理喔！'
       );
     }, 500);
   }
@@ -223,6 +233,8 @@ class GameApp {
         this.dressingRoom.initUI();
       } else if (modalId === 'minigame-modal') {
         this.miniGames.backToLobby();
+      } else if (modalId === 'shop-ranch-modal') {
+        this.fishingRanch.updateShopAndRanchUI();
       }
     }
   }
@@ -237,9 +249,9 @@ class GameApp {
     document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
   }
 
-  toggleMapSwitch() {
-    const nextMap = this.world.currentMap === 'town' ? 'coast' : 'town';
-    this.world.switchMap(nextMap, 1380, 920);
+  travelToMap(mapKey, x = 1380, y = 920) {
+    this.closeAllModals();
+    this.world.switchMap(mapKey, x, y);
   }
 
   toggleBGMButton() {

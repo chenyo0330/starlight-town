@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>🌟 星光鎮：夢幻小魔女與飛天小貓 (Starlight Town)</title>
+  <title>🌟 星光鎮 v2.0：夢幻小魔女與自然牧場 (Starlight Town)</title>
   <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
@@ -14,7 +14,7 @@
     <!-- 頂部 HUD 狀態與導覽列 -->
     <header id="top-hud">
       <div class="hud-group">
-        <!-- ❤️ 血量條 -->
+        <!-- ❤️ 體力條 -->
         <div class="hud-pill">
           <span>❤️</span>
           <span data-zhuyin="體力"></span>
@@ -43,15 +43,20 @@
         <div class="hud-pill">
           <span>💰</span>
           <span data-zhuyin="金幣"></span>
-          <strong id="hud-coin-val" style="color:#d97706;">120</strong>
+          <strong id="hud-coin-val" style="color:#d97706;">150</strong>
+        </div>
+
+        <!-- 📍 當前地圖名稱 -->
+        <div class="hud-pill" style="background:#fff0f6;">
+          <span id="hud-map-name" data-zhuyin="🏘️ 星光鎮中心廣場"></span>
         </div>
       </div>
 
-      <!-- 右上角地圖切換與音樂設定 -->
+      <!-- 右上角世界地圖與音樂設定 -->
       <div class="hud-group">
-        <button class="hud-btn" onclick="window.GameApp.toggleMapSwitch()">
+        <button class="hud-btn" onclick="window.GameApp.openModal('worldmap-modal')">
           <span>🗺️</span>
-          <span data-zhuyin="切換地圖"></span>
+          <span data-zhuyin="世界地圖"></span>
         </button>
         <button id="bgm-toggle-btn" class="hud-btn" onclick="window.GameApp.toggleBGMButton()">
           <span>🎵</span>
@@ -73,6 +78,16 @@
 
     <!-- 🚲 右下角主功能操作按鈕群 -->
     <div id="action-buttons">
+      <div class="action-row">
+        <button class="action-btn" style="background:linear-gradient(180deg,#d8f3dc,#95d5b2);" onclick="window.GameApp.openModal('shop-ranch-modal')">
+          <span class="btn-icon">🐑</span>
+          <span data-zhuyin="牧場與買飼料"></span>
+        </button>
+        <button class="action-btn" style="background:linear-gradient(180deg,#caf0f8,#90e0ef);" onclick="window.FishingRanch.openFishingSpot(window.GameApp.world.currentMap === 'coast' ? 'sea' : 'creek')">
+          <span class="btn-icon">🎣</span>
+          <span data-zhuyin="溪海釣魚"></span>
+        </button>
+      </div>
       <div class="action-row">
         <button class="action-btn primary-gold" onclick="window.GameApp.openModal('restaurant-modal')">
           <span class="btn-icon">🏡</span>
@@ -118,14 +133,124 @@
   </div>
 
   <!-- ==========================================================================
-       🏪 彈窗 1：星光餐廳雙重經營系統 (魔法親自經營 + 小貓代理掛機)
+       🗺️ 彈窗 0：《哆啦A夢 牧場物語》風格 4 大區域世界地圖導覽
        ========================================================================== -->
-  <div id="restaurant-modal" class="modal-overlay hidden">
+  <div id="worldmap-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
         <div class="modal-title">
-          <span>🏡</span>
-          <span data-zhuyin="星光餐廳雙重經營系統"></span>
+          <span>🗺️</span>
+          <span data-zhuyin="星光鎮自然王國：四大相連地圖導覽"></span>
+        </div>
+        <button class="hud-btn" onclick="window.GameApp.closeAllModals()">
+          <span>✕</span>
+          <span data-zhuyin="關閉地圖"></span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="minigame-grid">
+          <div class="mg-card">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <img src="assets/maps/map_town.jpg" alt="星光鎮廣場" style="width:140px; height:86px; object-fit:cover; border-radius:14px; border:2.5px solid #5e3a24;" />
+              <div>
+                <h3 style="margin:0 0 6px; font-size:20px;" data-zhuyin="🏘️ 星光鎮中心廣場"></h3>
+                <p style="margin:0; font-size:14px;" data-zhuyin="星光餐廳、彩虹噴泉、熊熊雜貨鋪（買飼料）與麵包兔烘焙坊。"></p>
+              </div>
+            </div>
+            <button class="action-btn primary-pink" style="margin-top:10px;" onclick="window.GameApp.travelToMap('town', 1380, 920)">
+              <span data-zhuyin="前往星光鎮廣場"></span>
+            </button>
+          </div>
+
+          <div class="mg-card">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <img src="assets/maps/map_creek.jpg" alt="微風清溪" style="width:140px; height:86px; object-fit:cover; border-radius:14px; border:2.5px solid #5e3a24;" />
+              <div>
+                <h3 style="margin:0 0 6px; font-size:20px;" data-zhuyin="🌲 微風清溪與夢幻森林"></h3>
+                <p style="margin:0; font-size:14px;" data-zhuyin="【溪釣勝地】走過木橋釣黃金香魚與櫻花鱒，採集森林蘑菇與草莓！"></p>
+              </div>
+            </div>
+            <button class="action-btn primary-purple" style="margin-top:10px;" onclick="window.GameApp.travelToMap('creek', 960, 760)">
+              <span data-zhuyin="前往微風清溪（溪釣）"></span>
+            </button>
+          </div>
+
+          <div class="mg-card">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <img src="assets/maps/map_ranch.jpg" alt="陽光畜牧農場" style="width:140px; height:86px; object-fit:cover; border-radius:14px; border:2.5px solid #5e3a24;" />
+              <div>
+                <h3 style="margin:0 0 6px; font-size:20px;" data-zhuyin="🌾 陽光畜牧農場"></h3>
+                <p style="margin:0; font-size:14px;" data-zhuyin="【養羊與養雞】在木柵欄餵食小綿羊與咕咕雞，收穫黃金雞蛋、羊奶與羊毛！"></p>
+              </div>
+            </div>
+            <button class="action-btn primary-gold" style="margin-top:10px;" onclick="window.GameApp.travelToMap('ranch', 1020, 820)">
+              <span data-zhuyin="前往陽光畜牧農場"></span>
+            </button>
+          </div>
+
+          <div class="mg-card">
+            <div style="display:flex; gap:12px; align-items:center;">
+              <img src="assets/maps/map_coast.jpg" alt="蔚藍海岸" style="width:140px; height:86px; object-fit:cover; border-radius:14px; border:2.5px solid #5e3a24;" />
+              <div>
+                <h3 style="margin:0 0 6px; font-size:20px;" data-zhuyin="🏖️ 蔚藍海岸與木棧碼頭"></h3>
+                <p style="margin:0; font-size:14px;" data-zhuyin="【海釣碼頭】走上木棧道釣粉紅星光鯛魚与藍寶石鮪魚，找水手鴨玩貝殼派對！"></p>
+              </div>
+            </div>
+            <button class="action-btn primary-pink" style="margin-top:10px;" onclick="window.GameApp.travelToMap('coast', 1920, 740)">
+              <span data-zhuyin="前往蔚藍海岸（海釣）"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       🎣 彈窗 1B：溪釣與海釣互動系統 (Creek & Sea Fishing Modal)
+       ========================================================================== -->
+  <div id="fishing-modal" class="modal-overlay hidden">
+    <div class="modal-card" style="height:min(580px, 88vh);">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🎣</span>
+          <span id="fishing-modal-title" data-zhuyin="星光垂釣樂園"></span>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="hud-btn" onclick="window.FishingRanch.openFishingSpot('creek')">
+            <span>🏞️</span> <span data-zhuyin="切換溪釣"></span>
+          </button>
+          <button class="hud-btn" onclick="window.FishingRanch.openFishingSpot('sea')">
+            <span>🌊</span> <span data-zhuyin="切換海釣"></span>
+          </button>
+          <button class="hud-btn" onclick="window.GameApp.closeAllModals()">
+            <span>✕</span> <span data-zhuyin="收竿返回"></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="flex-direction:column; align-items:center; justify-content:space-between;">
+        <div id="fishing-bag-summary" style="display:flex; gap:24px; font-size:18px; background:#fff; padding:8px 24px; border-radius:99px; border:3px solid #5e3a24;"></div>
+        <canvas id="fishing-canvas" width="720" height="310" style="border:3.5px solid #5e3a24; border-radius:24px; cursor:pointer; max-width:100%;"></canvas>
+        <div style="display:flex; gap:14px; align-items:center;">
+          <button id="fishing-action-btn" class="action-btn primary-pink" style="min-width:240px; font-size:20px;" onclick="window.FishingRanch.handleFishingAction()"></button>
+          <button class="action-btn primary-gold" onclick="window.GameApp.openModal('restaurant-modal')">
+            <span>🍳</span> <span data-zhuyin="帶魚去餐廳做料理"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       🐑 彈窗 1C：熊熊雜貨鋪買飼料 & 陽光牧場養羊養雞系統
+       ========================================================================== -->
+  <div id="shop-ranch-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🐻🐑</span>
+          <span data-zhuyin="熊熊雜貨鋪（買飼料）＆ 陽光牧場畜牧管理"></span>
         </div>
         <button class="hud-btn" onclick="window.GameApp.closeAllModals()">
           <span>✕</span>
@@ -134,57 +259,203 @@
       </div>
 
       <div class="modal-body">
-        <!-- 左側：🌟 魔法親自下廚區 -->
-        <div class="rest-col-left">
-          <div class="cute-panel">
-            <div style="font-size:18px; color:#e04580;">
-              <span>🌟</span>
-              <span data-zhuyin="魔法親自經營（享 1.5 倍金幣 + 雙倍星星）"></span>
+        <!-- 左側：🐻 熊熊店長飼料與小動物商店 -->
+        <div class="rest-col-left" style="width:48%;">
+          <div class="cute-panel" style="flex:1;">
+            <div style="font-size:19px; color:#e04580; margin-bottom:10px; display:flex; align-items:center; gap:8px;">
+              <img src="assets/sprites/item_feed_bag.png" alt="飼料" style="width:42px; height:42px; object-fit:contain;" />
+              <span data-zhuyin="🐻 熊熊店長飼料與幼畜商店"></span>
             </div>
+
+            <div class="upgrade-list">
+              <div class="upgrade-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="assets/sprites/item_feed_bag.png" alt="雞飼料" />
+                  <div>
+                    <div style="font-size:17px;" data-zhuyin="🌽 黃金穀物飼料（3包）"></div>
+                    <div style="font-size:13px; color:#666;" data-zhuyin="餵飽咕咕雞，產出黃金土雞蛋！"></div>
+                  </div>
+                </div>
+                <button class="hud-btn" onclick="window.FishingRanch.buyShopItem('chicken_feed')">
+                  💰 10 <span data-zhuyin="購買"></span>
+                </button>
+              </div>
+
+              <div class="upgrade-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="assets/sprites/item_feed_bag.png" alt="羊飼料" />
+                  <div>
+                    <div style="font-size:17px;" data-zhuyin="🌿 香甜牧草飼料（3包）"></div>
+                    <div style="font-size:13px; color:#666;" data-zhuyin="餵飽小綿羊，產出濃醇羊奶與羊毛！"></div>
+                  </div>
+                </div>
+                <button class="hud-btn" onclick="window.FishingRanch.buyShopItem('sheep_feed')">
+                  💰 15 <span data-zhuyin="購買"></span>
+                </button>
+              </div>
+
+              <div class="upgrade-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="assets/sprites/animal_chicken.png" alt="咕咕雞" />
+                  <div>
+                    <div style="font-size:17px;" data-zhuyin="🐔 領養「黃金咕咕雞」"></div>
+                    <div style="font-size:13px; color:#666;" data-zhuyin="放養到陽光牧場圍欄裡生雞蛋"></div>
+                  </div>
+                </div>
+                <button class="hud-btn" onclick="window.FishingRanch.buyShopItem('buy_chicken')">
+                  💰 50 <span data-zhuyin="領養"></span>
+                </button>
+              </div>
+
+              <div class="upgrade-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="assets/sprites/animal_sheep.png" alt="小綿羊" />
+                  <div>
+                    <div style="font-size:17px;" data-zhuyin="🐑 領養「軟綿綿小羊」"></div>
+                    <div style="font-size:13px; color:#666;" data-zhuyin="放養到陽光牧場圍欄裡產羊奶與羊毛"></div>
+                  </div>
+                </div>
+                <button class="hud-btn" onclick="window.FishingRanch.buyShopItem('buy_sheep')">
+                  💰 70 <span data-zhuyin="領養"></span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右側：🏡 陽光牧場餵食與農產品收穫 -->
+        <div class="rest-col-right" style="width:52%;">
+          <div class="cute-panel">
+            <div style="font-size:19px; color:#2a9d8f; margin-bottom:8px;">
+              <span>🏡</span>
+              <span data-zhuyin="陽光畜牧農場：飼料與產物庫存"></span>
+            </div>
+
             <div class="ingredient-bar">
               <div class="ing-badge">
-                <div>🍓 <span data-zhuyin="草莓"></span></div>
-                <strong id="ing-strawberry" style="font-size:20px; color:#e04580;">3</strong>
+                <div>🌽 <span data-zhuyin="穀物飼料"></span></div>
+                <strong id="shop-chicken-feed-val" style="font-size:20px; color:#d97706;">3</strong>
               </div>
               <div class="ing-badge">
-                <div>🥛 <span data-zhuyin="鮮奶"></span></div>
-                <strong id="ing-milk" style="font-size:20px; color:#0077b6;">3</strong>
+                <div>🌿 <span data-zhuyin="牧草飼料"></span></div>
+                <strong id="shop-sheep-feed-val" style="font-size:20px; color:#2a9d8f;">3</strong>
               </div>
               <div class="ing-badge">
-                <div>🌾 <span data-zhuyin="小麥粉"></span></div>
-                <strong id="ing-flour" style="font-size:20px; color:#d97706;">3</strong>
+                <div>🥚 <span data-zhuyin="黃金雞蛋"></span></div>
+                <strong id="ranch-egg-val" style="font-size:20px; color:#e04580;">2</strong>
               </div>
+              <div class="ing-badge">
+                <div>🧶 <span data-zhuyin="蓬蓬羊毛"></span></div>
+                <strong id="ranch-wool-val" style="font-size:20px; color:#9f67ff;">1</strong>
+              </div>
+            </div>
+
+            <div style="margin-top:14px; display:flex; align-items:center; justify-content:space-around; background:#fff9fb; border:2.5px dashed #ff6fa5; border-radius:20px; padding:12px;">
+              <div style="text-align:center;">
+                <img src="assets/sprites/animal_chicken.png" alt="雞" style="width:68px; height:68px; object-fit:contain;" />
+                <div>🐔 <span data-zhuyin="牧場咕咕雞"></span>: <strong id="ranch-chicken-count">3</strong> <span data-zhuyin="隻"></span></div>
+              </div>
+              <div style="text-align:center;">
+                <img src="assets/sprites/animal_sheep.png" alt="羊" style="width:68px; height:68px; object-fit:contain;" />
+                <div>🐑 <span data-zhuyin="牧場小綿羊"></span>: <strong id="ranch-sheep-count">2</strong> <span data-zhuyin="隻"></span></div>
+              </div>
+            </div>
+
+            <div style="margin-top:14px; display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+              <button class="action-btn primary-pink" onclick="window.FishingRanch.feedAllAnimalsInModal()">
+                <span>❤️</span>
+                <span data-zhuyin="一鍵餵食所有小雞與小羊（收穫雞蛋/羊奶/羊毛）"></span>
+              </button>
+              <button class="action-btn primary-gold" onclick="window.GameApp.travelToMap('ranch', 1280, 820)">
+                <span>🌾</span>
+                <span data-zhuyin="親自去陽光牧場看小羊"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="cute-panel" style="display:flex; align-items:center; justify-content:space-between;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="assets/sprites/item_egg_wool.png" alt="羊毛籃" style="width:60px; height:60px; object-fit:contain;" />
+              <div>
+                <div style="font-size:17px;" data-zhuyin="🧶 牧場羊毛手工編織坊"></div>
+                <div style="font-size:13px; color:#666;" data-zhuyin="用 1 個蓬蓬羊毛織成「暖暖絨毛斗篷」並賺取 60 金幣！"></div>
+              </div>
+            </div>
+            <button class="hud-btn" onclick="window.FishingRanch.weaveWoolOutfit()">
+              <span>🧶</span> <span data-zhuyin="編織羊毛斗篷"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       🏪 彈窗 1：星光餐廳雙重經營系統 (5 大採集/牧場/鮮魚食譜 + 小貓代理掛機)
+       ========================================================================== -->
+  <div id="restaurant-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🏡</span>
+          <span data-zhuyin="星光餐廳雙重經營系統（採集・牧場・鮮魚料理）"></span>
+        </div>
+        <button class="hud-btn" onclick="window.GameApp.closeAllModals()">
+          <span>✕</span>
+          <span data-zhuyin="返回小鎮"></span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 左側：🌟 魔法親自下廚區 (5 大食譜選擇) -->
+        <div class="rest-col-left" style="width:50%;">
+          <div class="cute-panel">
+            <div style="font-size:16px; color:#e04580; margin-bottom:6px;">
+              <span>📖</span>
+              <span data-zhuyin="選擇要製作的料理食譜（親自下廚享 1.5 倍金幣）："></span>
+            </div>
+            <div id="recipe-selector-bar" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;"></div>
+
+            <div class="ingredient-bar" style="flex-wrap:wrap; gap:4px;">
+              <div class="ing-badge" style="padding:4px 6px;">🍓<span data-zhuyin="草莓"></span>:<strong id="ing-strawberry">3</strong></div>
+              <div class="ing-badge" style="padding:4px 6px;">🥛<span data-zhuyin="鮮奶"></span>:<strong id="ing-milk">3</strong></div>
+              <div class="ing-badge" style="padding:4px 6px;">🌾<span data-zhuyin="麥粉"></span>:<strong id="ing-flour">3</strong></div>
+              <div class="ing-badge" style="padding:4px 6px;">🥚<span data-zhuyin="雞蛋"></span>:<strong id="ing-egg">2</strong></div>
+              <div class="ing-badge" style="padding:4px 6px;">🍄<span data-zhuyin="蘑菇"></span>:<strong id="ing-mushroom">2</strong></div>
+              <div class="ing-badge" style="padding:4px 6px;">🐟<span data-zhuyin="溪魚"></span>:<strong id="ing-creek-fish">1</strong></div>
+              <div class="ing-badge" style="padding:4px 6px;">🐠<span data-zhuyin="海魚"></span>:<strong id="ing-sea-fish">1</strong></div>
+              <div class="ing-badge" style="padding:4px 6px;">🦐<span data-zhuyin="鮮蝦"></span>:<strong id="ing-shrimp">1</strong></div>
             </div>
           </div>
 
           <div class="cooking-stage">
-            <div id="cook-step-hint" style="font-size:15px; margin-bottom:6px;"></div>
-            <canvas id="cooking-canvas" width="360" height="210"></canvas>
-            <div style="display:flex; gap:8px; margin-top:10px; width:100%; justify-content:center;">
+            <div id="cook-step-hint" style="font-size:14px; margin-bottom:4px;"></div>
+            <canvas id="cooking-canvas" width="380" height="190"></canvas>
+            <div style="display:flex; gap:8px; margin-top:8px; width:100%; justify-content:center;">
               <button class="action-btn primary-pink" onclick="window.Restaurant.startCooking()">
-                <span>🍧</span>
+                <span>🍳</span>
                 <span data-zhuyin="開始親自下廚"></span>
               </button>
               <button class="action-btn" onclick="window.Restaurant.giveStarterIngredients()">
                 <span>🧺</span>
-                <span data-zhuyin="補充食材"></span>
+                <span data-zhuyin="一鍵補充全食材"></span>
               </button>
             </div>
           </div>
         </div>
 
         <!-- 右側：🐾 小貓代理經營 & 🏙️ 餐廳擴建升級 -->
-        <div class="rest-col-right">
+        <div class="rest-col-right" style="width:50%;">
           <div class="cute-panel" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
             <div style="display:flex; align-items:center; gap:12px;">
-              <img src="assets/sprites/cat_flying.png" alt="小貓店長" style="width:74px; height:74px; object-fit:contain;" />
+              <img src="assets/sprites/cat_flying.png" alt="小貓店長" style="width:70px; height:70px; object-fit:contain;" />
               <div>
                 <div style="font-size:18px; color:#4c2882;">
                   <span>🐾🎩</span>
-                  <span data-zhuyin="飛天小貓代理店長（自動掛機賣餐）"></span>
+                  <span data-zhuyin="飛天小貓代理店長（自動賣餐）"></span>
                 </div>
                 <div style="margin-top:6px; font-size:16px;">
-                  <span data-zhuyin="玻璃櫥窗帕菲庫存："></span>
+                  <span data-zhuyin="玻璃櫥窗料理庫存："></span>
                   <strong id="showcase-count" style="color:#e04580; font-size:22px;">2</strong>
                   <span data-zhuyin="份"></span>
                 </div>
@@ -234,7 +505,7 @@
                   <img src="assets/sprites/prop_cafe_table.png" alt="彩虹陽傘桌椅" />
                   <div>
                     <div style="font-size:17px;" data-zhuyin="擴建「露天彩虹陽傘桌椅」"></div>
-                    <div style="font-size:14px; color:#666;" data-zhuyin="吸引更多客人，帕菲售價提升！"></div>
+                    <div style="font-size:14px; color:#666;" data-zhuyin="吸引更多客人，所有料理售價提升 20%！"></div>
                   </div>
                 </div>
                 <button id="btn-upg-table" class="hud-btn" onclick="window.Restaurant.buyUpgrade('umbrellaTables', 150)"></button>
@@ -263,7 +534,6 @@
       </div>
 
       <div class="modal-body">
-        <!-- 關卡選擇大廳 (4 大關卡卡片) -->
         <div id="mg-lobby-view" class="minigame-grid">
           <div class="mg-card">
             <div>
@@ -322,7 +592,6 @@
           </div>
         </div>
 
-        <!-- 小遊戲進行中畫布舞台 -->
         <div id="mg-active-stage" style="display:none;">
           <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
             <div>
@@ -336,7 +605,6 @@
           </div>
 
           <canvas id="mg-canvas" width="880" height="410"></canvas>
-
           <div id="mg-controls-bar" style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap;"></div>
         </div>
       </div>
@@ -344,7 +612,7 @@
   </div>
 
   <!-- ==========================================================================
-       👗 彈窗 3：屋內換裝小屋系統 (左 30% 360° 旋轉舞台 / 右 70% 分頁衣櫥與調色盤)
+       👗 彈窗 3：屋內換裝小屋系統
        ========================================================================== -->
   <div id="dressing-modal" class="modal-overlay hidden">
     <div class="modal-card">
@@ -360,7 +628,6 @@
       </div>
 
       <div class="modal-body">
-        <!-- 左側 (30%)：3D/2.5D 主角與小貓 360° 旋轉展示舞台 -->
         <div class="dress-stage-left">
           <div id="dress-stage-cheer" style="font-size:16px; color:#e04580; text-align:center;" data-zhuyin="360度旋轉舞台：點擊飾品試穿轉圈歡呼！"></div>
           <canvas id="dress-stage-canvas" width="260" height="330"></canvas>
@@ -380,7 +647,6 @@
           </div>
         </div>
 
-        <!-- 右側 (70%)：5 大部位分頁 + 4x2 大圖示卡片格 + 底部 7 色調色盤 -->
         <div class="dress-wardrobe-right">
           <div id="dress-tabs-bar" class="dress-tabs"></div>
           <div id="dress-items-grid" class="dress-grid"></div>
@@ -399,6 +665,7 @@
   <!-- 載入遊戲腳本 -->
   <script src="js/bopomofo.js"></script>
   <script src="js/world.js"></script>
+  <script src="js/fishing_ranch.js"></script>
   <script src="js/restaurant.js"></script>
   <script src="js/minigames.js"></script>
   <script src="js/dressing.js"></script>

@@ -1,10 +1,55 @@
 /**
- * 🏪 4. 模擬城市雙重經營系統 (Restaurant & Tycoon)
- * 包含：
- * 1. 🌟 魔法親自經營（主動劃圈擠冰淇淋、堆疊水果 -> 1.5倍金幣 + 雙倍星星）
- * 2. 🐾 寵物代理經營（小貓店長戴高帽自動賣餐給 NPC，右上角定時彈出提示 + 回家領金幣寶箱）
- * 3. 🏙️ 餐廳擴建升級（聘請麵包兔、水手鴨、擴建露天彩虹陽傘桌椅）
+ * 🏪 4. 模擬城市雙重經營系統 (Restaurant & Tycoon v2.0)
+ * 新增：結合【野外採集 + 陽光牧場雞蛋/羊奶 + 微風清溪/蔚藍海岸釣魚】的 5 大招牌料理食譜！
  */
+
+const RECIPES = [
+  {
+    id: 'parfait',
+    name: '彩虹星光草莓帕菲',
+    icon: '🍧',
+    basePrice: 50,
+    activePrice: 75,
+    cost: { strawberry: 1, milk: 1, flour: 1 },
+    costText: '🍓草莓x1 + 🥛鮮奶x1 + 🌾小麥粉x1'
+  },
+  {
+    id: 'souffle',
+    name: '黃金雞蛋布丁舒芙蕾',
+    icon: '🍮',
+    basePrice: 70,
+    activePrice: 105,
+    cost: { egg: 1, milk: 1, flour: 1 },
+    costText: '🥚雞蛋x1 + 🥛鮮奶x1 + 🌾小麥粉x1'
+  },
+  {
+    id: 'ayu_steak',
+    name: '奶油香煎黃金香魚',
+    icon: '🐟🍳',
+    basePrice: 90,
+    activePrice: 135,
+    cost: { creekFish: 1, milk: 1, flour: 1 },
+    costText: '🐟溪魚x1 + 🥛鮮奶x1 + 🌾小麥粉x1'
+  },
+  {
+    id: 'chowder',
+    name: '松露蘑菇鮮蝦巧達湯',
+    icon: '🍲',
+    basePrice: 120,
+    activePrice: 180,
+    cost: { shrimp: 1, mushroom: 1, milk: 1 },
+    costText: '🦐鮮蝦x1 + 🍄蘑菇x1 + 🥛鮮奶x1'
+  },
+  {
+    id: 'sea_platter',
+    name: '星光鯛魚海陸拼盤',
+    icon: '🐠🍱',
+    basePrice: 160,
+    activePrice: 240,
+    cost: { seaFish: 1, egg: 1, strawberry: 1 },
+    costText: '🐠海魚x1 + 🥚雞蛋x1 + 🍓草莓x1'
+  }
+];
 
 class RestaurantSystem {
   constructor(gameState) {
@@ -12,7 +57,7 @@ class RestaurantSystem {
     this.canvas = document.getElementById('cooking-canvas');
     this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
 
-    // 親自下廚小遊戲階段：0=尚未開始, 1=劃圈擠冰淇淋, 2=點擊堆疊草莓水果, 3=灑上星光糖粉, 4=完成
+    this.selectedRecipeId = 'parfait';
     this.cookStep = 0;
     this.swirlProgress = 0;
     this.fruitCount = 0;
@@ -22,6 +67,17 @@ class RestaurantSystem {
 
     this.initEvents();
     this.startAutoTycoonLoop();
+  }
+
+  getSelectedRecipe() {
+    return RECIPES.find(r => r.id === this.selectedRecipeId) || RECIPES[0];
+  }
+
+  selectRecipe(recipeId) {
+    this.selectedRecipeId = recipeId;
+    this.cookStep = 0;
+    window.Sound.playChime(600, 0.08);
+    this.updateUI();
   }
 
   initEvents() {
@@ -53,24 +109,30 @@ class RestaurantSystem {
     });
   }
 
+  hasIngredientsFor(recipe) {
+    for (const [k, req] of Object.entries(recipe.cost)) {
+      if ((this.state.ingredients[k] || 0) < req) return false;
+    }
+    return true;
+  }
+
   startCooking() {
-    if (
-      this.state.ingredients.strawberry < 1 ||
-      this.state.ingredients.milk < 1 ||
-      this.state.ingredients.flour < 1
-    ) {
-      // 若食材不足，貼心給予新手魔法補充或提示採集
+    const recipe = this.getSelectedRecipe();
+    if (!this.hasIngredientsFor(recipe)) {
       window.Sound.playChime(320, 0.2, 'sawtooth');
       const statusEl = document.getElementById('cook-step-hint');
       if (statusEl) {
-        statusEl.innerHTML = window.Bopomofo.toHTML('食材不夠喔！請出門採集草莓，或點擊下方一鍵領取魔法食材補給！');
+        statusEl.innerHTML = window.Bopomofo.toHTML(
+          `食材還差一點喔！需要：${recipe.costText}（可去釣魚、牧場餵雞羊，或點擊下方補充食材！）`
+        );
       }
       return;
     }
 
-    this.state.ingredients.strawberry -= 1;
-    this.state.ingredients.milk -= 1;
-    this.state.ingredients.flour -= 1;
+    for (const [k, req] of Object.entries(recipe.cost)) {
+      this.state.ingredients[k] -= req;
+    }
+
     this.cookStep = 1;
     this.swirlProgress = 0;
     this.fruitCount = 0;
@@ -81,9 +143,14 @@ class RestaurantSystem {
   }
 
   giveStarterIngredients() {
-    this.state.ingredients.strawberry += 3;
-    this.state.ingredients.milk += 3;
-    this.state.ingredients.flour += 3;
+    this.state.ingredients.strawberry += 2;
+    this.state.ingredients.milk += 2;
+    this.state.ingredients.flour += 2;
+    this.state.ingredients.egg += 2;
+    this.state.ingredients.mushroom += 2;
+    this.state.ingredients.creekFish += 1;
+    this.state.ingredients.seaFish += 1;
+    this.state.ingredients.shrimp += 1;
     window.Sound.playCoin();
     this.updateUI();
     this.state.updateHUD();
@@ -96,14 +163,13 @@ class RestaurantSystem {
     }
 
     if (this.cookStep === 1) {
-      // 步驟 1：劃圈擠冰淇淋
       const cx = this.canvas.width / 2;
       const cy = this.canvas.height / 2 + 10;
       const angle = Math.atan2(pos.y - cy, pos.x - cx);
       if (this.lastAngle !== null) {
         let diff = Math.abs(angle - this.lastAngle);
         if (diff > Math.PI) diff = Math.PI * 2 - diff;
-        this.swirlProgress = Math.min(100, this.swirlProgress + diff * 28);
+        this.swirlProgress = Math.min(100, this.swirlProgress + diff * 30);
         if (Math.random() < 0.25) window.Sound.playChime(440 + this.swirlProgress * 3, 0.05);
       }
       this.lastAngle = angle;
@@ -115,7 +181,6 @@ class RestaurantSystem {
       }
       this.renderCookingCanvas();
     } else if (this.cookStep === 2 && isTap) {
-      // 步驟 2：點擊堆疊 4 顆彩虹草莓
       this.fruitCount++;
       window.Sound.playNote(this.fruitCount + 2);
       if (this.fruitCount >= 4) {
@@ -124,7 +189,6 @@ class RestaurantSystem {
       }
       this.renderCookingCanvas();
     } else if (this.cookStep === 3 && isTap) {
-      // 步驟 3：點擊灑上星光彩虹糖粉 (3 次)
       this.sprinkleCount++;
       window.Sound.playNote(this.sprinkleCount + 5);
       if (this.sprinkleCount >= 3) {
@@ -136,11 +200,15 @@ class RestaurantSystem {
 
   finishCooking() {
     this.cookStep = 4;
-    // 親自下廚獎勵：1.5 倍金幣 (75 金幣) + 雙倍星星獎勵 (40 EXP) + 玻璃櫥窗增加 2 份帕菲供小貓代理販售！
-    const bonusCoin = this.state.upgrades.umbrellaTables ? 95 : 75;
-    this.state.addCoins(bonusCoin);
-    this.state.addExp(40);
+    const recipe = this.getSelectedRecipe();
+    const tableMultiplier = this.state.upgrades.umbrellaTables ? 1.2 : 1.0;
+    const earned = Math.round(recipe.activePrice * tableMultiplier);
+
+    this.state.addCoins(earned);
+    this.state.addExp(45);
     this.state.showcaseCount += 2;
+    this.state.lastCookedRecipe = recipe;
+
     window.Sound.playFanfare();
     this.updateUI();
     this.renderCookingCanvas();
@@ -161,7 +229,7 @@ class RestaurantSystem {
     const h = this.canvas.height;
     ctx.clearRect(0, 0, w, h);
 
-    // 柔和夢幻甜點背景
+    const recipe = this.getSelectedRecipe();
     const grad = ctx.createLinearGradient(0, 0, 0, h);
     grad.addColorStop(0, '#fff5f8');
     grad.addColorStop(1, '#f3e8ff');
@@ -169,39 +237,31 @@ class RestaurantSystem {
     ctx.fillRect(0, 0, w, h);
 
     const cx = w / 2;
-    const cupBottomY = h - 22;
+    const cupBottomY = h - 20;
 
-    // 繪製玻璃帕菲高腳杯
+    // 繪製精緻料理擺盤底座
     ctx.save();
+    ctx.fillStyle = '#ffffff';
     ctx.strokeStyle = '#5e3a24';
     ctx.lineWidth = 3.5;
-    ctx.fillStyle = 'rgba(207, 239, 255, 0.55)';
-    // 杯底與杯柱
     ctx.beginPath();
-    ctx.ellipse(cx, cupBottomY, 44, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cupBottomY - 30, 88, 28, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillRect(cx - 8, cupBottomY - 36, 16, 36);
-    ctx.strokeRect(cx - 8, cupBottomY - 36, 16, 36);
-
-    // 杯身
+    ctx.strokeStyle = '#ff9ebb';
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(cx - 64, cupBottomY - 125);
-    ctx.lineTo(cx - 28, cupBottomY - 34);
-    ctx.lineTo(cx + 28, cupBottomY - 34);
-    ctx.lineTo(cx + 64, cupBottomY - 125);
-    ctx.closePath();
-    ctx.fill();
+    ctx.ellipse(cx, cupBottomY - 30, 74, 20, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
 
-    // 繪製冰淇淋螺旋層
+    // 步驟 1：料理基底螺旋
     const swirlLayers = this.cookStep === 0 ? 3 : Math.ceil((this.swirlProgress / 100) * 4);
-    const layerColors = ['#ff9ebb', '#ffb3c6', '#e0aaff', '#cdb4db'];
+    const layerColors = ['#ff9ebb', '#ffd166', '#e0aaff', '#a8e6cf'];
     for (let i = 0; i < swirlLayers; i++) {
-      const ly = cupBottomY - 62 - i * 22;
-      const lw = 56 - i * 9;
+      const ly = cupBottomY - 42 - i * 18;
+      const lw = 56 - i * 8;
       ctx.save();
       ctx.fillStyle = layerColors[i % layerColors.length];
       ctx.strokeStyle = '#5e3a24';
@@ -213,79 +273,71 @@ class RestaurantSystem {
       ctx.restore();
     }
 
-    // 繪製堆疊的草莓水果
-    const fruitsToShow = this.cookStep === 0 ? 4 : this.fruitCount;
-    const fruitOffsets = [
-      { x: -34, y: -95, icon: '🍓' },
-      { x: 34, y: -95, icon: '🍓' },
-      { x: -16, y: -122, icon: '🫐' },
-      { x: 18, y: -122, icon: '🍓' }
+    // 步驟 2：主角食材圖示（草莓 / 黃金雞蛋 / 溪魚 / 河蝦蘑菇 / 星光海魚）
+    const itemsToShow = this.cookStep === 0 ? 4 : this.fruitCount;
+    ctx.font = '32px sans-serif';
+    ctx.textAlign = 'center';
+    const offsets = [
+      { x: -34, y: -68 },
+      { x: 34, y: -68 },
+      { x: -16, y: -96 },
+      { x: 18, y: -96 }
     ];
-    for (let i = 0; i < fruitsToShow && i < fruitOffsets.length; i++) {
-      ctx.font = '28px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(fruitOffsets[i].icon, cx + fruitOffsets[i].x, cupBottomY + fruitOffsets[i].y);
+    for (let i = 0; i < itemsToShow && i < offsets.length; i++) {
+      ctx.fillText(recipe.icon, cx + offsets[i].x, cupBottomY + offsets[i].y);
     }
 
-    // 繪製星光糖粉與星星裝飾
+    // 步驟 3：星光魔法點綴
     if (this.cookStep === 0 || this.sprinkleCount > 0) {
       ctx.font = '26px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('🌟', cx, cupBottomY - 146);
+      ctx.fillText('🌟', cx, cupBottomY - 122);
       ctx.font = '18px sans-serif';
-      ctx.fillText('✨', cx - 45, cupBottomY - 135);
-      ctx.fillText('✨', cx + 45, cupBottomY - 135);
+      ctx.fillText('✨', cx - 50, cupBottomY - 110);
+      ctx.fillText('✨', cx + 50, cupBottomY - 110);
     }
 
-    // 繪製操作引導覆蓋層
+    // 頂部操作引導
     ctx.save();
-    ctx.font = 'bold 17px "Microsoft JhengHei"';
+    ctx.font = 'bold 16px "Microsoft JhengHei"';
     ctx.textAlign = 'center';
     ctx.fillStyle = '#5e3a24';
     if (this.cookStep === 1) {
-      ctx.fillText(`🌀 請在畫面上劃圈擠冰淇淋 (${Math.round(this.swirlProgress)}%)`, cx, 28);
-      // 畫出旋轉箭頭提示
-      ctx.strokeStyle = '#ff5d8f';
-      ctx.lineWidth = 3;
-      ctx.setLineDash([6, 6]);
-      ctx.beginPath();
-      ctx.arc(cx, h / 2, 58, 0, Math.PI * 1.65);
-      ctx.stroke();
+      ctx.fillText(`🌀 第1步：在畫布上劃圈調製「${recipe.name}」基底 (${Math.round(this.swirlProgress)}%)`, cx, 26);
     } else if (this.cookStep === 2) {
-      ctx.fillText(`🍓 請點擊畫面堆疊彩虹草莓 (${this.fruitCount}/4)`, cx, 28);
+      ctx.fillText(`🍓 第2步：點擊畫布擺上新鮮食材 (${this.fruitCount}/4)`, cx, 26);
     } else if (this.cookStep === 3) {
-      ctx.fillText(`✨ 請點擊灑上魔法星光糖粉 (${this.sprinkleCount}/3)`, cx, 28);
+      ctx.fillText(`✨ 第3步：點擊灑上星光魔法調味 (${this.sprinkleCount}/3)`, cx, 26);
     } else if (this.cookStep === 4) {
       ctx.fillStyle = '#e04580';
-      ctx.fillText('🎉 完成「彩虹星光草莓帕菲」！金幣1.5倍 + 櫥窗+2份！', cx, 28);
+      ctx.fillText(`🎉 完成「${recipe.name}」！獲得 1.5 倍金幣並上架櫥窗 +2 份！`, cx, 26);
     } else {
-      ctx.fillText('👩‍🍳 點擊此處或下方按鈕開始「魔法親自下廚」！', cx, 28);
+      ctx.fillText(`👩‍🍳 準備製作：${recipe.icon}${recipe.name}（點擊畫布或下方按鈕開始）`, cx, 26);
     }
     ctx.restore();
   }
 
   startAutoTycoonLoop() {
-    // 每 6 秒執行一次自動掛機循環：
-    // 1. 若已聘請麵包兔/水手鴨，定時補充小麥粉與鮮奶
-    // 2. 若玻璃櫥窗有帕菲庫存，小貓代理店長自動賣出並彈出右上角通知！
     setInterval(() => {
       let updated = false;
 
-      if (this.state.upgrades.breadBunny && this.state.ingredients.flour < 20) {
+      if (this.state.upgrades.breadBunny && this.state.ingredients.flour < 25) {
         this.state.ingredients.flour += 1;
         updated = true;
       }
-      if (this.state.upgrades.sailorDuck && this.state.ingredients.milk < 20) {
+      if (this.state.upgrades.sailorDuck && this.state.ingredients.milk < 25) {
         this.state.ingredients.milk += 1;
         updated = true;
       }
 
       if (this.state.showcaseCount > 0) {
         this.state.showcaseCount -= 1;
-        const unitPrice = this.state.upgrades.umbrellaTables ? 65 : 50;
+        const recipe = this.state.lastCookedRecipe || RECIPES[0];
+        const tableBonus = this.state.upgrades.umbrellaTables ? 20 : 0;
+        const unitPrice = recipe.basePrice + tableBonus;
         this.state.chestCoins += unitPrice;
         this.state.addCoins(unitPrice);
-        this.showCatSaleToast(unitPrice);
+        this.showCatSaleToast(recipe, unitPrice);
         updated = true;
       }
 
@@ -296,7 +348,7 @@ class RestaurantSystem {
     }, 6500);
   }
 
-  showCatSaleToast(coinAmount) {
+  showCatSaleToast(recipe, coinAmount) {
     const container = document.getElementById('cat-toast-container');
     if (!container) return;
 
@@ -305,7 +357,7 @@ class RestaurantSystem {
     toast.innerHTML = `
       <span style="font-size:28px;">🐱🎩</span>
       <div>
-        ${window.Bopomofo.toHTML(`小貓店長賣出了 1 份冰淇淋帕菲！`)}
+        ${window.Bopomofo.toHTML(`小貓店長賣出了 1 份${recipe.name}！`)}
         <strong style="color:#e04580; margin-left:6px;">💰 +${coinAmount} ${window.Bopomofo.toHTML('金幣')}</strong>
       </div>
     `;
@@ -345,31 +397,58 @@ class RestaurantSystem {
   }
 
   updateUI() {
-    const sbEl = document.getElementById('ing-strawberry');
-    const mkEl = document.getElementById('ing-milk');
-    const flEl = document.getElementById('ing-flour');
+    const ingMap = {
+      'ing-strawberry': this.state.ingredients.strawberry,
+      'ing-milk': this.state.ingredients.milk,
+      'ing-flour': this.state.ingredients.flour,
+      'ing-egg': this.state.ingredients.egg,
+      'ing-mushroom': this.state.ingredients.mushroom,
+      'ing-creek-fish': this.state.ingredients.creekFish,
+      'ing-sea-fish': this.state.ingredients.seaFish,
+      'ing-shrimp': this.state.ingredients.shrimp
+    };
+    for (const [id, val] of Object.entries(ingMap)) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val || 0;
+    }
+
     const scEl = document.getElementById('showcase-count');
     const ccEl = document.getElementById('chest-coins-val');
-    const stepHint = document.getElementById('cook-step-hint');
-
-    if (sbEl) sbEl.textContent = this.state.ingredients.strawberry;
-    if (mkEl) mkEl.textContent = this.state.ingredients.milk;
-    if (flEl) flEl.textContent = this.state.ingredients.flour;
     if (scEl) scEl.textContent = this.state.showcaseCount;
     if (ccEl) ccEl.textContent = this.state.chestCoins;
 
+    // 渲染 5 道料理食譜選擇按鈕
+    const recipeBar = document.getElementById('recipe-selector-bar');
+    if (recipeBar) {
+      recipeBar.innerHTML = RECIPES.map(r => {
+        const active = r.id === this.selectedRecipeId;
+        const canCook = this.hasIngredientsFor(r);
+        return `
+          <button class="hud-btn"
+                  style="flex:1; min-width:140px; flex-direction:column; padding:6px 10px; background:${active ? '#ffe0f0' : '#fff'}; border-color:${active ? '#e04580' : '#5e3a24'};"
+                  onclick="window.Restaurant.selectRecipe('${r.id}')">
+            <div style="font-size:16px;">${r.icon} ${window.Bopomofo.toHTML(r.name)}</div>
+            <div style="font-size:12px; color:${canCook ? '#2a9d8f' : '#d97706'};">
+              ${r.costText}｜💰${r.activePrice}
+            </div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    const recipe = this.getSelectedRecipe();
+    const stepHint = document.getElementById('cook-step-hint');
     if (stepHint) {
       const hints = {
-        0: '點擊「開始親自下廚」製作彩虹星光草莓冰淇淋帕菲（享 1.5 倍金幣 + 雙倍星星）！',
-        1: '第 1 步：在左側畫布上劃圈圈擠出香甜冰淇淋！',
-        2: '第 2 步：點擊畫布把新鮮彩虹草莓堆疊上去！',
-        3: '第 3 步：點擊畫布灑上閃亮亮的星光糖粉！',
-        4: '太棒了！料理完成並已擺入玻璃櫥窗，小貓店長開始自動賣餐囉！'
+        0: `已選食譜：【${recipe.name}】（需 ${recipe.costText}，親自下廚得 ${recipe.activePrice} 金幣）`,
+        1: '第 1 步：在下方畫布上劃圈圈調製料理基底！',
+        2: '第 2 步：點擊畫布擺上新鮮採集與釣到的食材！',
+        3: '第 3 步：點擊畫布灑上星光魔法粉！',
+        4: `太棒了！完成「${recipe.name}」並已擺入玻璃櫥窗！`
       };
       stepHint.innerHTML = window.Bopomofo.toHTML(hints[this.cookStep] || hints[0]);
     }
 
-    // 更新擴建升級按鈕狀態
     const upgDefs = [
       { key: 'breadBunny', btnId: 'btn-upg-bunny', cost: 100 },
       { key: 'sailorDuck', btnId: 'btn-upg-duck', cost: 120 },

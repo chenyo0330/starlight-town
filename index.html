@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>🌟 星光鎮 v2.0：夢幻小魔女與自然牧場 (Starlight Town)</title>
-  <link rel="stylesheet" href="css/style.css" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="stylesheet" href="css/style.css?v=2.1" />
 </head>
 <body>
   <div id="game-container">
@@ -52,15 +55,31 @@
         </div>
       </div>
 
-      <!-- 右上角世界地圖與音樂設定 -->
+      <!-- 右上角四大區域一鍵切換與音樂設定 -->
       <div class="hud-group">
+        <button class="hud-btn" style="background:linear-gradient(180deg,#fff,#ffd6eb);" onclick="window.GameApp.travelToMap('town', 1380, 920)">
+          <span>🏘️</span>
+          <span data-zhuyin="星光鎮"></span>
+        </button>
+        <button class="hud-btn" style="background:linear-gradient(180deg,#fff,#c7f9cc);" onclick="window.GameApp.travelToMap('creek', 1350, 780)">
+          <span>🌲🎣</span>
+          <span data-zhuyin="清溪釣魚"></span>
+        </button>
+        <button class="hud-btn" style="background:linear-gradient(180deg,#fff,#fff3b0);" onclick="window.GameApp.travelToMap('ranch', 1280, 820)">
+          <span>🌾🐑</span>
+          <span data-zhuyin="陽光牧場"></span>
+        </button>
+        <button class="hud-btn" style="background:linear-gradient(180deg,#fff,#caf0f8);" onclick="window.GameApp.travelToMap('coast', 1950, 720)">
+          <span>🏖️🌊</span>
+          <span data-zhuyin="海岸海釣"></span>
+        </button>
         <button class="hud-btn" onclick="window.GameApp.openModal('worldmap-modal')">
           <span>🗺️</span>
-          <span data-zhuyin="世界地圖"></span>
+          <span data-zhuyin="全覽"></span>
         </button>
         <button id="bgm-toggle-btn" class="hud-btn" onclick="window.GameApp.toggleBGMButton()">
           <span>🎵</span>
-          <span data-zhuyin="背景音樂"></span>
+          <span data-zhuyin="音樂"></span>
         </button>
       </div>
     </header>
@@ -662,13 +681,13 @@
     </div>
   </div>
 
-  <!-- 載入遊戲腳本 -->
-  <script src="js/bopomofo.js"></script>
-  <script src="js/world.js"></script>
-  <script src="js/fishing_ranch.js"></script>
-  <script src="js/restaurant.js"></script>
-  <script src="js/minigames.js"></script>
-  <script src="js/dressing.js"></script>
-  <script src="js/main.js"></script>
+  <!-- 載入遊戲腳本 (加上版本號強制更新瀏覽器快取) -->
+  <script src="js/bopomofo.js?v=2.1"></script>
+  <script src="js/world.js?v=2.1"></script>
+  <script src="js/fishing_ranch.js?v=2.1"></script>
+  <script src="js/restaurant.js?v=2.1"></script>
+  <script src="js/minigames.js?v=2.1"></script>
+  <script src="js/dressing.js?v=2.1"></script>
+  <script src="js/main.js?v=2.1"></script>
 </body>
 </html>

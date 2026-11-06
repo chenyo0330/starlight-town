@@ -1,6 +1,6 @@
 /* ==========================================================================
-   星光鎮：夢幻小魔女與飛天小貓 (Starlight Town)
-   專為 8 歲低年級打造的繪本柔和粉嫩視覺與直式注音 UI 樣式表
+   星光鎮 v2.2：夢幻小魔女與飛天小貓 (Starlight Town)
+   專為平板 (iPad/Android Tablet) 與手機行動裝置最佳化的響應式繪本 UI 樣式表
    ========================================================================== */
 
 :root {
@@ -16,8 +16,7 @@
   --mint-pastel: #c7f9cc;
   --cream-bg: #fffaf5;
   --brown-outline: #5e3a24;
-  --shadow-cute: 0 8px 24px rgba(159, 103, 255, 0.22);
-  --border-cute: 3px solid #5e3a24;
+  --shadow-cute: 0 6px 18px rgba(159, 103, 255, 0.22);
 }
 
 * {
@@ -25,6 +24,7 @@
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html, body {
@@ -33,6 +33,7 @@ html, body {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  overscroll-behavior: none;
   font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
   background: linear-gradient(180deg, #f3d5ff 0%, #cfefff 50%, #fff3d6 100%);
   color: var(--brown-outline);
@@ -45,12 +46,12 @@ html, body {
   display: inline-flex;
   align-items: center;
   vertical-align: middle;
-  margin: 0 2px;
+  margin: 0 1.5px;
   line-height: 1.15;
 }
 
 .zy-hanzi {
-  font-size: 1.15em;
+  font-size: 1.12em;
   font-weight: 800;
   color: inherit;
   line-height: 1.1;
@@ -63,7 +64,7 @@ html, body {
   justify-content: center;
   margin-left: 1px;
   position: relative;
-  min-width: 0.78em;
+  min-width: 0.75em;
 }
 
 .zy-col {
@@ -106,13 +107,16 @@ html, body {
 }
 
 /* ==========================================================================
-   🎮 主畫面與 2.5D 畫布容器
+   🎮 主畫面與 2.5D 畫布容器 (支援行動裝置 100dvh 與安全區域)
    ========================================================================== */
 #game-container {
   position: relative;
   width: 100vw;
   height: 100vh;
+  width: 100dvw;
+  height: 100dvh;
   overflow: hidden;
+  touch-action: none;
 }
 
 #world-canvas {
@@ -120,48 +124,57 @@ html, body {
   width: 100%;
   height: 100%;
   cursor: pointer;
+  touch-action: none;
 }
 
 /* ==========================================================================
-   ✨ 頂部 HUD 狀態列 (血量、經驗、星光碎片、金幣、地圖、設定)
+   ✨ 頂部 HUD 狀態列 (支援手機/平板單行橫向滑動不遮擋畫面)
    ========================================================================== */
 #top-hud {
   position: absolute;
-  top: 14px;
-  left: 16px;
-  right: 16px;
+  top: max(10px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   pointer-events: none;
   z-index: 20;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .hud-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   pointer-events: auto;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+
+.hud-group::-webkit-scrollbar {
+  display: none;
 }
 
 .hud-pill {
   background: rgba(255, 250, 245, 0.94);
-  border: 3px solid var(--brown-outline);
+  border: 2.5px solid var(--brown-outline);
   border-radius: 999px;
-  padding: 6px 14px;
+  padding: 5px 12px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  box-shadow: 0 4px 0 rgba(94, 58, 36, 0.25), var(--shadow-cute);
-  font-size: 16px;
+  gap: 6px;
+  box-shadow: 0 3px 0 rgba(94, 58, 36, 0.22);
+  font-size: 15px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .hud-bar-wrap {
-  width: 105px;
-  height: 16px;
+  width: 82px;
+  height: 14px;
   background: #f0e4d7;
   border: 2px solid var(--brown-outline);
   border-radius: 99px;
@@ -180,37 +193,30 @@ html, body {
 }
 
 .hud-bar-fill.exp {
-  background: linear-gradient(90deg, #ffb703, #TG00, #ffd166);
   background: linear-gradient(90deg, #ff9f1c, #ffbf69);
-}
-
-.hud-bar-fill.rainbow {
-  background: linear-gradient(90deg, #ff6fa5, #ffbe0b, #72efdd, #9f67ff);
 }
 
 .hud-btn {
   background: linear-gradient(180deg, #fff9fb 0%, #ffd6eb 100%);
-  border: 3px solid var(--brown-outline);
-  border-radius: 20px;
-  padding: 7px 15px;
-  font-size: 16px;
+  border: 2.5px solid var(--brown-outline);
+  border-radius: 18px;
+  padding: 6px 12px;
+  font-size: 15px;
   color: var(--brown-outline);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 5px 0 var(--brown-outline);
+  justify-content: center;
+  gap: 5px;
+  box-shadow: 0 4px 0 var(--brown-outline);
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: transform 0.12s, box-shadow 0.12s;
-}
-
-.hud-btn:hover {
-  transform: translateY(-2px);
-  background: linear-gradient(180deg, #ffffff 0%, #ffc4e1 100%);
 }
 
 .hud-btn:active {
   transform: translateY(3px);
-  box-shadow: 0 2px 0 var(--brown-outline);
+  box-shadow: 0 1px 0 var(--brown-outline);
 }
 
 /* ==========================================================================
@@ -218,25 +224,26 @@ html, body {
    ========================================================================== */
 #cat-toast-container {
   position: absolute;
-  top: 76px;
-  right: 18px;
+  top: 66px;
+  right: 14px;
   z-index: 35;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   pointer-events: none;
+  max-width: 88vw;
 }
 
 .cat-toast {
   background: linear-gradient(135deg, #fff8e7 0%, #ffe3f1 100%);
-  border: 3px solid var(--brown-outline);
-  border-radius: 22px;
-  padding: 10px 16px;
-  box-shadow: 0 6px 16px rgba(94, 58, 36, 0.25);
+  border: 2.5px solid var(--brown-outline);
+  border-radius: 20px;
+  padding: 8px 14px;
+  box-shadow: 0 5px 14px rgba(94, 58, 36, 0.25);
   display: flex;
   align-items: center;
-  gap: 10px;
-  font-size: 15px;
+  gap: 8px;
+  font-size: 14px;
   animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), toastFadeOut 0.4s 3.6s forwards;
 }
 
@@ -250,14 +257,14 @@ html, body {
 }
 
 /* ==========================================================================
-   🕹️ 左下角雙圈彩色搖桿 (Dual-Ring Colorful Joystick)
+   🕹️ 左下角雙圈彩色搖桿 (支援平板與手機拇指人體工學縮放)
    ========================================================================== */
 #joystick-zone {
   position: absolute;
-  bottom: 24px;
-  left: 26px;
-  width: 156px;
-  height: 156px;
+  bottom: max(18px, env(safe-area-inset-bottom));
+  left: max(18px, env(safe-area-inset-left));
+  width: 144px;
+  height: 144px;
   z-index: 25;
   display: flex;
   align-items: center;
@@ -266,20 +273,20 @@ html, body {
 }
 
 .joystick-outer-ring {
-  width: 144px;
-  height: 144px;
+  width: 100%;
+  height: 100%;
   border-radius: 50%;
   background: conic-gradient(
     from 0deg,
-    rgba(255, 133, 179, 0.55),
-    rgba(255, 214, 112, 0.55),
-    rgba(138, 243, 212, 0.55),
-    rgba(147, 198, 255, 0.55),
-    rgba(202, 146, 255, 0.55),
-    rgba(255, 133, 179, 0.55)
+    rgba(255, 133, 179, 0.62),
+    rgba(255, 214, 112, 0.62),
+    rgba(138, 243, 212, 0.62),
+    rgba(147, 198, 255, 0.62),
+    rgba(202, 146, 255, 0.62),
+    rgba(255, 133, 179, 0.62)
   );
-  border: 4px solid var(--brown-outline);
-  box-shadow: 0 6px 0 rgba(94, 58, 36, 0.35), inset 0 0 18px rgba(255, 255, 255, 0.8);
+  border: 3.5px solid var(--brown-outline);
+  box-shadow: 0 5px 0 rgba(94, 58, 36, 0.32), inset 0 0 16px rgba(255, 255, 255, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -287,65 +294,67 @@ html, body {
 }
 
 .joystick-inner-ring {
-  width: 96px;
-  height: 96px;
+  width: 66%;
+  height: 66%;
   border-radius: 50%;
-  background: rgba(255, 252, 247, 0.65);
+  background: rgba(255, 252, 247, 0.68);
   border: 2.5px dashed var(--purple-magic);
   pointer-events: none;
 }
 
 #joystick-knob {
   position: absolute;
-  width: 58px;
-  height: 58px;
+  width: 42%;
+  height: 42%;
   border-radius: 50%;
   background: radial-gradient(circle at 32% 30%, #ffffff 0%, #ff99c8 45%, #9f67ff 100%);
-  border: 3.5px solid var(--brown-outline);
-  box-shadow: 0 5px 10px rgba(76, 40, 130, 0.35);
+  border: 3px solid var(--brown-outline);
+  box-shadow: 0 4px 10px rgba(76, 40, 130, 0.35);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 22px;
   pointer-events: none;
-  transition: transform 0.05s linear;
+  transition: transform 0.04s linear;
 }
 
 /* ==========================================================================
-   🚲 右下角動作按鈕群 (上下車 / 互動 / 餐廳 / 小遊戲 / 換裝)
+   🚲 右下角動作按鈕群 (平板與手機雙排拇指弧形設計)
    ========================================================================== */
 #action-buttons {
   position: absolute;
-  bottom: 22px;
-  right: 22px;
+  bottom: max(16px, env(safe-area-inset-bottom));
+  right: max(16px, env(safe-area-inset-right));
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 10px;
+  gap: 8px;
   z-index: 25;
 }
 
 .action-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .action-btn {
   background: linear-gradient(180deg, #fffdf9 0%, #ffe0f0 100%);
-  border: 3.5px solid var(--brown-outline);
-  border-radius: 26px;
-  padding: 10px 18px;
-  min-width: 128px;
+  border: 3px solid var(--brown-outline);
+  border-radius: 22px;
+  padding: 8px 15px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  font-size: 18px;
+  gap: 6px;
+  font-size: 16px;
   color: var(--brown-outline);
-  box-shadow: 0 6px 0 var(--brown-outline), 0 10px 20px rgba(0, 0, 0, 0.15);
-  transition: transform 0.12s, background 0.2s;
+  box-shadow: 0 5px 0 var(--brown-outline), 0 8px 16px rgba(0, 0, 0, 0.14);
+  transition: transform 0.1s;
+  white-space: nowrap;
 }
 
 .action-btn.primary-pink {
@@ -362,52 +371,48 @@ html, body {
   background: linear-gradient(180deg, #ffea85 0%, #ffbe0b 100%);
 }
 
-.action-btn:hover {
-  transform: scale(1.04) translateY(-2px);
-}
-
 .action-btn:active {
-  transform: translateY(4px);
+  transform: translateY(3px);
   box-shadow: 0 2px 0 var(--brown-outline);
 }
 
 .btn-icon {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 /* ==========================================================================
-   💬 底部繪本對話框 + 右上角小喇叭 🔊 TTS
+   💬 繪本對話框 + 右上角小喇叭 🔊 TTS
    ========================================================================== */
 #dialogue-box {
   position: absolute;
-  bottom: 24px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(740px, 64vw);
+  width: min(680px, 56vw);
   background: rgba(255, 252, 245, 0.97);
-  border: 4px solid var(--brown-outline);
-  border-radius: 30px;
-  padding: 18px 24px;
+  border: 3.5px solid var(--brown-outline);
+  border-radius: 26px;
+  padding: 14px 20px;
   z-index: 30;
-  box-shadow: 0 8px 0 var(--brown-outline), 0 14px 32px rgba(76, 40, 130, 0.28);
+  box-shadow: 0 7px 0 var(--brown-outline), 0 12px 28px rgba(76, 40, 130, 0.28);
   display: flex;
   align-items: center;
-  gap: 18px;
-  transition: opacity 0.25s, transform 0.25s;
+  gap: 14px;
+  transition: opacity 0.22s, transform 0.22s;
 }
 
 #dialogue-box.hidden {
   opacity: 0;
   pointer-events: none;
-  transform: translateX(-50%) translateY(30px);
+  transform: translateX(-50%) translateY(25px);
 }
 
 .dialogue-avatar {
-  width: 84px;
-  height: 84px;
-  border-radius: 22px;
+  width: 72px;
+  height: 72px;
+  border-radius: 18px;
   background: linear-gradient(135deg, #ffe5f1, #e8d5ff);
-  border: 3px solid var(--brown-outline);
+  border: 2.5px solid var(--brown-outline);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -423,73 +428,69 @@ html, body {
 
 .dialogue-content {
   flex: 1;
+  padding-top: 6px;
 }
 
 .dialogue-speaker {
   display: inline-block;
   background: var(--pink-vivid);
   color: #fff;
-  padding: 4px 14px;
+  padding: 3px 12px;
   border-radius: 99px;
-  border: 2.5px solid var(--brown-outline);
-  font-size: 16px;
-  margin-bottom: 8px;
+  border: 2px solid var(--brown-outline);
+  font-size: 14px;
+  margin-bottom: 6px;
 }
 
 .dialogue-text {
-  font-size: 21px;
-  line-height: 1.55;
+  font-size: 18px;
+  line-height: 1.5;
   color: var(--brown-outline);
 }
 
 .tts-speaker-btn {
   position: absolute;
-  top: 12px;
-  right: 60px;
+  top: 10px;
+  right: 52px;
   background: linear-gradient(180deg, #fff099 0%, #ffbe0b 100%);
-  border: 3px solid var(--brown-outline);
+  border: 2.5px solid var(--brown-outline);
   border-radius: 99px;
-  padding: 6px 14px;
-  font-size: 16px;
+  padding: 4px 12px;
+  font-size: 14px;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 5px;
-  box-shadow: 0 3px 0 var(--brown-outline);
-}
-
-.tts-speaker-btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 1px 0 var(--brown-outline);
+  gap: 4px;
+  box-shadow: 0 2px 0 var(--brown-outline);
 }
 
 .dialogue-close-btn {
   position: absolute;
-  top: 12px;
-  right: 14px;
-  width: 38px;
-  height: 38px;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   background: #ffcad4;
-  border: 3px solid var(--brown-outline);
-  font-size: 18px;
+  border: 2.5px solid var(--brown-outline);
+  font-size: 16px;
   font-weight: 900;
   cursor: pointer;
 }
 
 /* ==========================================================================
-   🪟 通用彈出視窗 (星光餐廳 / 小遊戲大廳 / 換裝小屋)
+   🪟 通用彈出視窗 (針對平板與手機支援順暢觸控捲動)
    ========================================================================== */
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(64, 34, 96, 0.52);
-  backdrop-filter: blur(5px);
+  background: rgba(64, 34, 96, 0.55);
+  backdrop-filter: blur(4px);
   z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 18px;
+  padding: 10px;
 }
 
 .modal-overlay.hidden {
@@ -497,12 +498,12 @@ html, body {
 }
 
 .modal-card {
-  width: min(1060px, 95vw);
-  height: min(680px, 90vh);
+  width: min(1040px, 96dvw);
+  height: min(670px, 92dvh);
   background: var(--cream-bg);
-  border: 4px solid var(--brown-outline);
-  border-radius: 34px;
-  box-shadow: 0 10px 0 var(--brown-outline), 0 20px 50px rgba(0, 0, 0, 0.35);
+  border: 3.5px solid var(--brown-outline);
+  border-radius: 28px;
+  box-shadow: 0 8px 0 var(--brown-outline), 0 18px 40px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -511,95 +512,92 @@ html, body {
 
 .modal-header {
   background: linear-gradient(90deg, #ffb3d9 0%, #d8b4f8 50%, #a8e6cf 100%);
-  border-bottom: 4px solid var(--brown-outline);
-  padding: 12px 24px;
+  border-bottom: 3.5px solid var(--brown-outline);
+  padding: 10px 18px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .modal-title {
-  font-size: 24px;
+  font-size: clamp(17px, 2.2vw, 22px);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .modal-body {
   flex: 1;
   overflow-y: auto;
-  padding: 20px;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
+  padding: 16px;
   display: flex;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* ==========================================================================
-   🏪 4. 星光餐廳雙重經營介面 (Restaurant & Tycoon)
+   🏪 4. 星光餐廳與牧場介面
    ========================================================================== */
-.rest-col-left {
-  width: 42%;
+.rest-col-left, .rest-col-right {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-}
-
-.rest-col-right {
-  width: 58%;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .cute-panel {
   background: #ffffff;
-  border: 3px solid var(--brown-outline);
-  border-radius: 24px;
-  padding: 14px 18px;
-  box-shadow: 0 5px 0 rgba(94, 58, 36, 0.16);
+  border: 2.5px solid var(--brown-outline);
+  border-radius: 20px;
+  padding: 12px 14px;
+  box-shadow: 0 4px 0 rgba(94, 58, 36, 0.14);
 }
 
 .ingredient-bar {
   display: flex;
   justify-content: space-around;
-  gap: 8px;
-  margin-top: 8px;
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .ing-badge {
   background: #fff5f8;
-  border: 2.5px solid var(--brown-outline);
-  border-radius: 18px;
-  padding: 8px 12px;
+  border: 2px solid var(--brown-outline);
+  border-radius: 14px;
+  padding: 6px 8px;
   text-align: center;
   flex: 1;
+  font-size: 14px;
 }
 
 .cooking-stage {
   background: linear-gradient(180deg, #fff0f6 0%, #f3e8ff 100%);
-  border: 3px dashed var(--pink-vivid);
-  border-radius: 22px;
-  padding: 14px;
+  border: 2.5px dashed var(--pink-vivid);
+  border-radius: 20px;
+  padding: 10px;
   text-align: center;
-  position: relative;
-  min-height: 250px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
 }
 
-#cooking-canvas {
+#cooking-canvas, #fishing-canvas, #mg-canvas, #dress-stage-canvas {
   background: #ffffff;
   border: 3px solid var(--brown-outline);
   border-radius: 18px;
   cursor: pointer;
   touch-action: none;
+  max-width: 100%;
+  height: auto;
 }
 
 .upgrade-list {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 10px;
+  gap: 8px;
 }
 
 .upgrade-item {
@@ -607,42 +605,38 @@ html, body {
   align-items: center;
   justify-content: space-between;
   background: #fffdf7;
-  border: 2.5px solid var(--brown-outline);
-  border-radius: 18px;
-  padding: 10px 14px;
-  gap: 12px;
+  border: 2px solid var(--brown-outline);
+  border-radius: 16px;
+  padding: 8px 12px;
+  gap: 10px;
 }
 
 .upgrade-item img {
-  width: 54px;
-  height: 54px;
+  width: 46px;
+  height: 46px;
   object-fit: contain;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================
-   🧠 5. 階梯式高難度小遊戲介面 (Mini-Games)
+   🧠 5. 階梯式高難度小遊戲介面
    ========================================================================== */
 .minigame-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  gap: 14px;
   width: 100%;
 }
 
 .mg-card {
   background: linear-gradient(180deg, #ffffff 0%, #fff4fa 100%);
-  border: 3.5px solid var(--brown-outline);
-  border-radius: 26px;
-  padding: 16px;
+  border: 3px solid var(--brown-outline);
+  border-radius: 22px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 6px 0 rgba(94, 58, 36, 0.2);
-  transition: transform 0.15s;
-}
-
-.mg-card:hover {
-  transform: translateY(-4px);
+  box-shadow: 0 5px 0 rgba(94, 58, 36, 0.18);
 }
 
 .mg-tag {
@@ -650,13 +644,12 @@ html, body {
   background: var(--purple-soft);
   border: 2px solid var(--brown-outline);
   border-radius: 99px;
-  padding: 3px 12px;
-  font-size: 14px;
+  padding: 3px 10px;
+  font-size: 13px;
 }
 
 #mg-active-stage {
   width: 100%;
-  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -664,148 +657,197 @@ html, body {
   gap: 10px;
 }
 
-#mg-canvas {
-  background: #fffdf9;
-  border: 3.5px solid var(--brown-outline);
-  border-radius: 24px;
-  max-width: 100%;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
-  touch-action: none;
-}
-
 /* ==========================================================================
-   👗 6. 屋內換裝小屋介面 (Dressing Room: 左30%舞台 / 右70%衣櫥)
+   👗 6. 屋內換裝小屋介面
    ========================================================================== */
 .dress-stage-left {
   width: 32%;
   background: radial-gradient(circle at 50% 35%, #ffffff 0%, #ffe3f1 55%, #e5d4ff 100%);
-  border: 3.5px solid var(--brown-outline);
-  border-radius: 28px;
-  padding: 16px;
+  border: 3px solid var(--brown-outline);
+  border-radius: 24px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  position: relative;
-  overflow: hidden;
 }
 
 .dress-wardrobe-right {
   width: 68%;
   display: flex;
   flex-direction: column;
-   justify-content: space-between;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .dress-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .dress-tab {
   flex: 1;
   background: #fff5fa;
-  border: 3px solid var(--brown-outline);
-  border-radius: 18px;
-  padding: 8px 10px;
-  font-size: 16px;
+  border: 2.5px solid var(--brown-outline);
+  border-radius: 16px;
+  padding: 6px 8px;
+  font-size: 15px;
   cursor: pointer;
   text-align: center;
-  box-shadow: 0 4px 0 var(--brown-outline);
+  box-shadow: 0 3px 0 var(--brown-outline);
 }
 
 .dress-tab.active {
   background: linear-gradient(180deg, #ff9ebb 0%, #ff6fa5 100%);
   color: #fff;
   transform: translateY(2px);
-  box-shadow: 0 2px 0 var(--brown-outline);
+  box-shadow: 0 1px 0 var(--brown-outline);
 }
 
 .dress-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 12px;
+  gap: 10px;
   flex: 1;
 }
 
 .dress-card {
   background: #ffffff;
-  border: 3px solid var(--brown-outline);
-  border-radius: 22px;
-  padding: 10px;
+  border: 2.5px solid var(--brown-outline);
+  border-radius: 18px;
+  padding: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
   cursor: pointer;
-  position: relative;
-  transition: transform 0.14s, background 0.14s;
-}
-
-.dress-card:hover {
-  transform: scale(1.04);
-  background: #fff7fb;
 }
 
 .dress-card.equipped {
   background: #fff0f7;
   border-color: var(--pink-deep);
-  box-shadow: 0 0 0 3px var(--pink-vivid), 0 5px 12px rgba(255, 111, 165, 0.3);
-}
-
-.dress-card.locked {
-  opacity: 0.65;
-  background: #f2ece9;
+  box-shadow: 0 0 0 2.5px var(--pink-vivid);
 }
 
 .dress-card-icon {
-  font-size: 38px;
+  font-size: 32px;
 }
 
 .color-palette-bar {
   background: #fff;
-  border: 3px solid var(--brown-outline);
-  border-radius: 22px;
-  padding: 10px 18px;
+  border: 2.5px solid var(--brown-outline);
+  border-radius: 18px;
+  padding: 8px 14px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .swatch-list {
   display: flex;
-  gap: 10px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .color-swatch {
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  border: 3px solid var(--brown-outline);
+  border: 2.5px solid var(--brown-outline);
   cursor: pointer;
-  transition: transform 0.15s;
 }
 
-.color-swatch:hover, .color-swatch.active {
-  transform: scale(1.22);
-  box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--pink-vivid);
+.color-swatch.active {
+  transform: scale(1.18);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 5px var(--pink-vivid);
 }
 
-@media (max-width: 860px) {
+/* ==========================================================================
+   📱 平板 (Tablet <= 1024px) 與手機 (Mobile橫向/直向) 專屬響應式排版
+   ========================================================================== */
+@media (max-width: 1024px), (max-height: 600px) {
+  #top-hud {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+  }
+
+  .hud-pill {
+    padding: 4px 10px;
+    font-size: 13px;
+  }
+
+  .hud-bar-wrap {
+    width: 54px;
+    height: 11px;
+  }
+
+  .hud-btn {
+    padding: 5px 10px;
+    font-size: 13px;
+  }
+
+  /* 對話框移至上方中央，完全不擋住左下搖桿與右下按鈕！ */
+  #dialogue-box {
+    bottom: auto;
+    top: 54px;
+    width: min(600px, 92vw);
+    padding: 10px 14px;
+  }
+
+  .dialogue-avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .dialogue-text {
+    font-size: 15px;
+  }
+
+  /* 搖桿與動作按鈕縮放至適合平板/手機拇指操作 */
+  #joystick-zone {
+    width: 118px;
+    height: 118px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  #action-buttons {
+    bottom: max(12px, env(safe-area-inset-bottom));
+    right: max(12px, env(safe-area-inset-right));
+    gap: 6px;
+    max-width: 62vw;
+  }
+
+  .action-btn {
+    padding: 6px 11px;
+    font-size: 13px;
+    border-radius: 18px;
+  }
+
+  .btn-icon {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 820px) {
   .modal-body {
     flex-direction: column;
+    padding: 12px;
   }
+
   .rest-col-left, .rest-col-right, .dress-stage-left, .dress-wardrobe-right {
-    width: 100%;
+    width: 100% !important;
   }
+
   .minigame-grid {
     grid-template-columns: 1fr;
   }
+
   .dress-grid {
     grid-template-columns: repeat(2, 1fr);
   }

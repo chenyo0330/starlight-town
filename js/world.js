@@ -1,17 +1,17 @@
 /**
- * 🗺️ v2.0 2.5D 等角視角世界引擎 (Isometric World Engine)
- * 參考《哆啦A夢 牧場物語 自然王國與和樂家人》：
- * 1. 四大相連水彩繪本地圖：星光鎮廣場 (town) <-> 微風清溪森林 (creek) <-> 陽光畜牧農場 (ranch) <-> 蔚藍海岸碼頭 (coast)
- * 2. 真實地形與木橋碰撞判定（方向 A：過河走木橋、建築與深水防穿牆、路口邊緣自然過場）
- * 3. 陽光牧場放養小羊與小雞（現場餵食飼料、收穫雞蛋與羊毛）
- * 4. 微風清溪【溪釣點】與蔚藍海岸【海釣點】
+ * 🗺️ v2.2 2.5D 等角視角世界引擎 (Isometric World Engine)
+ * 升級重點：
+ * 1. 修正所有角色、載具、飛天小貓與牧場動物的移動朝向（原圖朝左，往右移動時自動鏡像翻轉並帶轉向傾角）
+ * 2. 結合 Python 像素級影像分析與幾何多邊形的真實碰撞系統 (window.COLLISION_GRIDS)：
+ *    精準阻擋建築物、海洋、溪流、噴泉、森林與高低差岩壁，僅木橋、木棧道、石子路與草地沙灘可行走
+ * 3. 針對手機與平板觸控最佳化的鏡頭縮放與防卡牆滑動物理
  */
 
 const MAP_INFO = {
-  town: { name: '🏘️ 星光鎮中心廣場', bgKey: 'map_town' },
-  creek: { name: '🌲 微風清溪與夢幻森林', bgKey: 'map_creek' },
-  ranch: { name: '🌾 陽光畜牧農場', bgKey: 'map_ranch' },
-  coast: { name: '🏖️ 蔚藍海岸與木棧碼頭', bgKey: 'map_coast' }
+  town: { name: '🏘️ 星光鎮中心廣場', bgKey: 'map_town', safeSpawn: { x: 1320, y: 920 } },
+  creek: { name: '🌲 微風清溪與夢幻森林', bgKey: 'map_creek', safeSpawn: { x: 860, y: 740 } },
+  ranch: { name: '🌾 陽光畜牧農場', bgKey: 'map_ranch', safeSpawn: { x: 1280, y: 800 } },
+  coast: { name: '🏖️ 蔚藍海岸與木棧碼頭', bgKey: 'map_coast', safeSpawn: { x: 1120, y: 920 } }
 };
 
 class StarlightWorld {
@@ -25,24 +25,32 @@ class StarlightWorld {
 
     this.worldWidth = 2752;
     this.worldHeight = 1536;
+    this.gridW = 172;
+    this.gridH = 96;
+    this.cellSize = 16;
+
     this.currentMap = 'town';
     this.portalCooldown = 0;
+    this.showCollisionDebug = false; // 可切換顯示地形碰撞網格
 
+    // 主角狀態：facing = 1 (朝右), -1 (朝左)
     this.player = {
-      x: 1380,
-      y: 940,
+      x: 1320,
+      y: 920,
       vx: 0,
       vy: 0,
       facing: 1,
+      tiltAngle: 0,
       vehicleIndex: 0,
       bobPhase: 0,
       targetX: null,
-      targetY: null
+      targetY: null,
+      bumpCooldown: 0
     };
 
     this.cat = {
-      x: 1310,
-      y: 950,
+      x: 1240,
+      y: 930,
       facing: 1,
       wingPhase: 0,
       meowCooldown: 0,
@@ -51,8 +59,8 @@ class StarlightWorld {
     };
 
     this.calicoCat = {
-      x: 1260,
-      y: 960,
+      x: 1190,
+      y: 950,
       facing: 1,
       bobPhase: 0
     };
@@ -62,7 +70,6 @@ class StarlightWorld {
     this.particles = [];
     this.floatingTexts = [];
 
-    // 陽光牧場放養的動物們（小羊與小雞）
     this.ranchAnimals = [];
     this.initRanchAnimals();
 
@@ -91,7 +98,6 @@ class StarlightWorld {
       strawberry1: 'assets/sprites/prop_strawberry_bush1.png',
       strawberry2: 'assets/sprites/prop_strawberry_bush2.png',
       cafe_table: 'assets/sprites/prop_cafe_table.png',
-      // v2.0 新增畜牧與釣魚圖資
       animal_sheep: 'assets/sprites/animal_sheep.png',
       animal_chicken: 'assets/sprites/animal_chicken.png',
       animal_chick: 'assets/sprites/animal_chick.png',
@@ -110,13 +116,12 @@ class StarlightWorld {
   }
 
   initRanchAnimals() {
-    // 初始在陽光畜牧農場圍欄內放養 2 隻軟綿綿小羊、2 隻咕咕母雞、1 隻小黃雞
     this.ranchAnimals = [
-      { id: 'sh1', species: 'sheep', name: '雲朵小羊咩咩', x: 1220, y: 690, vx: 0.7, vy: 0.3, facing: 1, hungry: true, hasProduct: false, timer: 0 },
-      { id: 'sh2', species: 'sheep', name: '棉花糖小羊', x: 1480, y: 780, vx: -0.6, vy: 0.4, facing: -1, hungry: true, hasProduct: false, timer: 40 },
-      { id: 'ch1', species: 'chicken', name: '黃金咕咕雞', x: 1150, y: 860, vx: 0.9, vy: -0.4, facing: 1, hungry: true, hasProduct: false, timer: 20 },
-      { id: 'ch2', species: 'chicken', name: '元氣咕咕雞', x: 1380, y: 920, vx: -0.8, vy: -0.3, facing: -1, hungry: true, hasProduct: false, timer: 60 },
-      { id: 'ck1', species: 'chick', name: '小黃雞啾啾', x: 1290, y: 840, vx: 1.0, vy: 0.5, facing: 1, hungry: false, hasProduct: false, timer: 10 }
+      { id: 'sh1', species: 'sheep', name: '雲朵小羊咩咩', x: 1220, y: 720, vx: 0.7, vy: 0.3, facing: 1, hungry: true, timer: 0 },
+      { id: 'sh2', species: 'sheep', name: '棉花糖小羊', x: 1460, y: 780, vx: -0.6, vy: 0.4, facing: -1, hungry: true, timer: 40 },
+      { id: 'ch1', species: 'chicken', name: '黃金咕咕雞', x: 1180, y: 850, vx: 0.9, vy: -0.4, facing: 1, hungry: true, timer: 20 },
+      { id: 'ch2', species: 'chicken', name: '元氣咕咕雞', x: 1380, y: 900, vx: -0.8, vy: -0.3, facing: -1, hungry: true, timer: 60 },
+      { id: 'ck1', species: 'chick', name: '小黃雞啾啾', x: 1300, y: 830, vx: 1.0, vy: 0.5, facing: 1, hungry: false, timer: 10 }
     ];
   }
 
@@ -126,73 +131,69 @@ class StarlightWorld {
       id: `${species}_${Date.now()}`,
       species,
       name: isSheep ? '新領養小綿羊' : '新領養咕咕雞',
-      x: 1180 + Math.random() * 340,
-      y: 680 + Math.random() * 260,
+      x: 1220 + Math.random() * 260,
+      y: 720 + Math.random() * 180,
       vx: (Math.random() - 0.5) * 1.4,
       vy: (Math.random() - 0.5) * 1.0,
       facing: 1,
       hungry: true,
-      hasProduct: false,
       timer: 0
     });
   }
 
   initWorldEntities() {
-    // 四張地圖的野外採集點與隱藏寶箱
     this.harvestNodes = [
       // 1. 星光鎮 (town)
-      { id: 't_sb1', map: 'town', x: 340, y: 1180, type: 'strawberry', name: '彩虹草莓叢', cooldown: 0, sprite: 'strawberry1' },
-      { id: 't_chest1', map: 'town', x: 240, y: 390, type: 'chest', name: '森林角落寶箱', opened: false },
+      { id: 't_sb1', map: 'town', x: 740, y: 1180, type: 'strawberry', name: '彩虹草莓叢', cooldown: 0, sprite: 'strawberry1' },
+      { id: 't_chest1', map: 'town', x: 980, y: 360, type: 'chest', name: '森林入口寶箱', opened: false },
 
       // 2. 微風清溪與夢幻森林 (creek)
-      { id: 'cr_sb1', map: 'creek', x: 960, y: 540, type: 'strawberry', name: '溪畔甜草莓', cooldown: 0, sprite: 'strawberry2' },
-      { id: 'cr_sb2', map: 'creek', x: 1740, y: 980, type: 'strawberry', name: '森林彩虹草莓', cooldown: 0, sprite: 'strawberry1' },
-      { id: 'cr_ms1', map: 'creek', x: 650, y: 880, type: 'mushroom', name: '發光松露蘑菇', cooldown: 0 },
-      { id: 'cr_ms2', map: 'creek', x: 1860, y: 560, type: 'mushroom', name: '森林香甜蘑菇', cooldown: 0 },
-      { id: 'cr_chest1', map: 'creek', x: 2150, y: 360, type: 'chest', name: '瀑布秘境寶箱', opened: false },
+      { id: 'cr_sb1', map: 'creek', x: 920, y: 580, type: 'strawberry', name: '溪畔甜草莓', cooldown: 0, sprite: 'strawberry2' },
+      { id: 'cr_sb2', map: 'creek', x: 1760, y: 960, type: 'strawberry', name: '森林彩虹草莓', cooldown: 0, sprite: 'strawberry1' },
+      { id: 'cr_ms1', map: 'creek', x: 720, y: 780, type: 'mushroom', name: '發光松露蘑菇', cooldown: 0 },
+      { id: 'cr_ms2', map: 'creek', x: 1860, y: 680, type: 'mushroom', name: '森林香甜蘑菇', cooldown: 0 },
+      { id: 'cr_chest1', map: 'creek', x: 2020, y: 740, type: 'chest', name: '清溪秘境寶箱', opened: false },
 
       // 3. 陽光畜牧農場 (ranch)
-      { id: 'rn_fl1', map: 'ranch', x: 2050, y: 420, type: 'flour', name: '金色麥田小麥粉', cooldown: 0 },
-      { id: 'rn_fl2', map: 'ranch', x: 2340, y: 520, type: 'flour', name: '陽光小麥粉', cooldown: 0 },
-      { id: 'rn_chest1', map: 'ranch', x: 460, y: 360, type: 'chest', name: '穀倉私房寶箱', opened: false },
+      { id: 'rn_fl1', map: 'ranch', x: 1780, y: 360, type: 'flour', name: '金色麥田小麥粉', cooldown: 0 },
+      { id: 'rn_fl2', map: 'ranch', x: 2180, y: 640, type: 'flour', name: '陽光小麥粉', cooldown: 0 },
+      { id: 'rn_chest1', map: 'ranch', x: 880, y: 560, type: 'chest', name: '穀倉私房寶箱', opened: false },
 
       // 4. 蔚藍海岸與木棧碼頭 (coast)
-      { id: 'co_sb1', map: 'coast', x: 360, y: 980, type: 'strawberry', name: '海風甜草莓', cooldown: 0, sprite: 'strawberry2' },
-      { id: 'co_chest1', map: 'coast', x: 1290, y: 1280, type: 'chest', name: '沙灘貝殼寶箱', opened: false }
+      { id: 'co_sb1', map: 'coast', x: 560, y: 960, type: 'strawberry', name: '海風甜草莓', cooldown: 0, sprite: 'strawberry2' },
+      { id: 'co_chest1', map: 'coast', x: 1020, y: 1180, type: 'chest', name: '沙灘貝殼寶箱', opened: false }
     ];
 
     this.gems = [];
     this.spawnRandomGems();
 
-    // 四張地圖的建築、釣魚點、路口指標與 NPC
     this.landmarks = [
       // --- 🏘️ 星光鎮廣場 (town) ---
-      { id: 'restaurant', map: 'town', x: 530, y: 660, radius: 200, title: '🏡 星光餐廳 (蘑菇屋)', actionLabel: '進入星光餐廳下廚', type: 'restaurant' },
-      { id: 'fountain', map: 'town', x: 1580, y: 710, radius: 185, title: '⛲ 彩虹音樂噴泉', actionLabel: '挑戰 1-3 失蹤的小貓', type: 'minigame', gameId: '1-3' },
-      { id: 'bear_shop', map: 'town', x: 2350, y: 560, radius: 195, title: '🐻 熊熊店長雜貨鋪', actionLabel: '買飼料 / 領養小雞小羊 / 1-1', type: 'npc_bear' },
-      { id: 'bunny_bakery', map: 'town', x: 1760, y: 270, radius: 175, title: '🐰 麵包兔烘焙坊', actionLabel: '挑戰 1-2 幾何地磚', type: 'npc_bunny' },
-      { id: 'town_to_creek', map: 'town', x: 960, y: 180, radius: 165, title: '🌲 往微風清溪與森林 (溪釣)', actionLabel: '前往微風清溪釣魚', type: 'portal', targetMap: 'creek', targetX: 460, targetY: 660 },
-      { id: 'town_to_ranch', map: 'town', x: 2560, y: 260, radius: 175, title: '🌾 往陽光畜牧農場 (養羊養雞)', actionLabel: '前往陽光牧場餵羊餵雞', type: 'portal', targetMap: 'ranch', targetX: 380, targetY: 720 },
-      { id: 'town_to_coast', map: 'town', x: 2560, y: 1020, radius: 175, title: '🏖️ 往蔚藍海岸碼頭 (海釣)', actionLabel: '前往蔚藍海岸海釣', type: 'portal', targetMap: 'coast', targetX: 420, targetY: 1100 },
+      { id: 'restaurant', map: 'town', x: 820, y: 780, radius: 220, title: '🏡 星光餐廳 (蘑菇屋)', actionLabel: '進入星光餐廳下廚', type: 'restaurant' },
+      { id: 'fountain', map: 'town', x: 1605, y: 920, radius: 210, title: '⛲ 彩虹音樂噴泉', actionLabel: '挑戰 1-3 失蹤的小貓', type: 'minigame', gameId: '1-3' },
+      { id: 'bear_shop', map: 'town', x: 2160, y: 620, radius: 210, title: '🐻 熊熊店長雜貨鋪', actionLabel: '買飼料 / 領養雞羊', type: 'npc_bear' },
+      { id: 'bunny_bakery', map: 'town', x: 1760, y: 470, radius: 190, title: '🐰 麵包兔烘焙坊', actionLabel: '挑戰 1-2 幾何地磚', type: 'npc_bunny' },
+      { id: 'town_to_creek', map: 'town', x: 720, y: 180, radius: 180, title: '🌲 往微風清溪 (溪釣)', actionLabel: '前往微風清溪釣魚', type: 'portal', targetMap: 'creek', targetX: 460, targetY: 660 },
+      { id: 'town_to_ranch', map: 'town', x: 2480, y: 210, radius: 190, title: '🌾 往陽光牧場 (養羊養雞)', actionLabel: '過木橋去陽光牧場', type: 'portal', targetMap: 'ranch', targetX: 420, targetY: 680 },
+      { id: 'town_to_coast', map: 'town', x: 2560, y: 1010, radius: 190, title: '🏖️ 往蔚藍海岸 (海釣)', actionLabel: '過木橋去蔚藍海岸', type: 'portal', targetMap: 'coast', targetX: 360, targetY: 1180 },
 
       // --- 🌲 微風清溪與夢幻森林 (creek) ---
-      { id: 'creek_fish_bridge', map: 'creek', x: 1350, y: 760, radius: 220, title: '🎣 清溪木橋釣魚點', actionLabel: '拋竿溪釣 (香魚/櫻花鱒)', type: 'fishing', spotType: 'creek' },
-      { id: 'creek_fish_falls', map: 'creek', x: 1120, y: 420, radius: 210, title: '🎣 瀑布水潭釣魚點', actionLabel: '瀑布溪釣 (櫻花鱒/甜河蝦)', type: 'fishing', spotType: 'creek' },
-      { id: 'creek_to_town', map: 'creek', x: 220, y: 630, radius: 170, title: '🏘️ 返回星光鎮廣場', actionLabel: '回星光鎮廣場', type: 'portal', targetMap: 'town', targetX: 980, targetY: 260 },
-      { id: 'creek_to_ranch', map: 'creek', x: 2500, y: 650, radius: 175, title: '🌾 前往陽光畜牧農場', actionLabel: '前往陽光牧場', type: 'portal', targetMap: 'ranch', targetX: 1460, targetY: 220 },
+      { id: 'creek_fish_bridge', map: 'creek', x: 1350, y: 780, radius: 240, title: '🎣 清溪木橋釣魚點', actionLabel: '拋竿溪釣 (香魚/櫻花鱒)', type: 'fishing', spotType: 'creek' },
+      { id: 'creek_fish_falls', map: 'creek', x: 960, y: 480, radius: 220, title: '🎣 瀑布水潭釣魚點', actionLabel: '瀑布溪釣 (櫻花鱒/甜河蝦)', type: 'fishing', spotType: 'creek' },
+      { id: 'creek_to_town', map: 'creek', x: 200, y: 630, radius: 180, title: '🏘️ 返回星光鎮廣場', actionLabel: '回星光鎮廣場', type: 'portal', targetMap: 'town', targetX: 820, targetY: 260 },
+      { id: 'creek_to_ranch', map: 'creek', x: 2480, y: 680, radius: 185, title: '🌾 前往陽光畜牧農場', actionLabel: '前往陽光牧場', type: 'portal', targetMap: 'ranch', targetX: 1460, targetY: 220 },
 
       // --- 🌾 陽光畜牧農場 (ranch) ---
-      { id: 'ranch_coop_barn', map: 'ranch', x: 760, y: 460, radius: 210, title: '🏡 陽光牧場雞舍與羊舍', actionLabel: '打開牧場餵食與買飼料面板', type: 'ranch_panel' },
-      { id: 'ranch_pasture_gate', map: 'ranch', x: 1320, y: 790, radius: 280, title: '🐑 牧場放養圍欄區', actionLabel: '餵食小羊與小雞 / 收穫雞蛋羊毛', type: 'feed_animals' },
-      { id: 'ranch_to_town', map: 'ranch', x: 210, y: 680, radius: 170, title: '🏘️ 返回星光鎮廣場', actionLabel: '回星光鎮廣場', type: 'portal', targetMap: 'town', targetX: 2420, targetY: 320 },
-      { id: 'ranch_to_creek', map: 'ranch', x: 1480, y: 150, radius: 165, title: '🌲 前往微風清溪 (溪釣)', actionLabel: '前往微風清溪', type: 'portal', targetMap: 'creek', targetX: 2340, targetY: 660 },
-      { id: 'ranch_to_coast', map: 'ranch', x: 2350, y: 1360, radius: 175, title: '🏖️ 前往蔚藍海岸 (海釣)', actionLabel: '前往蔚藍海岸', type: 'portal', targetMap: 'coast', targetX: 820, targetY: 320 },
+      { id: 'ranch_coop_barn', map: 'ranch', x: 860, y: 560, radius: 220, title: '🏡 陽光牧場雞舍與羊舍', actionLabel: '打開牧場餵食與買飼料面板', type: 'ranch_panel' },
+      { id: 'ranch_pasture_gate', map: 'ranch', x: 1320, y: 800, radius: 320, title: '🐑 牧場放養圍欄區', actionLabel: '餵食小羊與小雞 / 收雞蛋羊毛', type: 'feed_animals' },
+      { id: 'ranch_to_town', map: 'ranch', x: 220, y: 680, radius: 180, title: '🏘️ 返回星光鎮廣場', actionLabel: '回星光鎮廣場', type: 'portal', targetMap: 'town', targetX: 2380, targetY: 280 },
+      { id: 'ranch_to_creek', map: 'ranch', x: 1520, y: 150, radius: 180, title: '🌲 前往微風清溪 (溪釣)', actionLabel: '前往微風清溪', type: 'portal', targetMap: 'creek', targetX: 2320, targetY: 680 },
+      { id: 'ranch_to_coast', map: 'ranch', x: 2350, y: 1360, radius: 185, title: '🏖️ 前往蔚藍海岸 (海釣)', actionLabel: '前往蔚藍海岸', type: 'portal', targetMap: 'coast', targetX: 980, targetY: 820 },
 
       // --- 🏖️ 蔚藍海岸與木棧碼頭 (coast) ---
-      { id: 'coast_sea_fishing', map: 'coast', x: 2260, y: 740, radius: 230, title: '🌊 木棧道海釣碼頭', actionLabel: '拋竿海釣 (星光鯛/藍寶石鮪魚)', type: 'fishing', spotType: 'sea' },
-      { id: 'sailor_duck_pier', map: 'coast', x: 1850, y: 560, radius: 185, title: '🦆 水手鴨船長', actionLabel: '挑戰 2-1 貝殼水果派對', type: 'npc_duck' },
-      { id: 'coast_to_town', map: 'coast', x: 280, y: 1160, radius: 175, title: '🏘️ 返回星光鎮廣場', actionLabel: '回星光鎮廣場', type: 'portal', targetMap: 'town', targetX: 2420, targetY: 980 },
-      { id: 'coast_to_ranch', map: 'coast', x: 760, y: 220, radius: 170, title: '🌾 前往陽光畜牧農場', actionLabel: '前往陽光牧場', type: 'portal', targetMap: 'ranch', targetX: 2220, targetY: 1260 }
+      { id: 'coast_sea_fishing', map: 'coast', x: 2350, y: 740, radius: 250, title: '🌊 木棧道海釣碼頭', actionLabel: '拋竿海釣 (星光鯛/藍寶石鮪魚)', type: 'fishing', spotType: 'sea' },
+      { id: 'sailor_duck_pier', map: 'coast', x: 1920, y: 680, radius: 210, title: '🦆 水手鴨船長', actionLabel: '挑戰 2-1 貝殼水果派對', type: 'npc_duck' },
+      { id: 'coast_to_town', map: 'coast', x: 320, y: 1180, radius: 185, title: '🏘️ 返回星光鎮廣場', actionLabel: '過木橋回星光鎮', type: 'portal', targetMap: 'town', targetX: 2420, targetY: 980 }
     ];
   }
 
@@ -201,10 +202,12 @@ class StarlightWorld {
     const maps = ['town', 'creek', 'ranch', 'coast'];
     const colors = ['#ff6fa5', '#ffbe0b', '#72efdd', '#9f67ff', '#ff9ebb'];
     for (let i = 0; i < 16; i++) {
+      const m = maps[i % maps.length];
+      const pos = this.findNearestWalkable(m, 500 + Math.random() * 1700, 350 + Math.random() * 850);
       this.gems.push({
-        map: maps[i % maps.length],
-        x: 380 + Math.random() * 1900,
-        y: 320 + Math.random() * 880,
+        map: m,
+        x: pos.x,
+        y: pos.y,
         color: colors[i % colors.length],
         bob: Math.random() * Math.PI * 2
       });
@@ -212,40 +215,39 @@ class StarlightWorld {
   }
 
   /**
-   * 🚧 方向 A：地形、河流、海洋與建築物碰撞檢查 (防止穿牆與直接走進深水)
+   * 🚧 像素級 + 多邊形地形碰撞判定 (查詢 window.COLLISION_GRIDS)
+   * 精準阻擋：海水、溪流、瀑布、高低差岩壁、房屋、攤販、柵欄與樹林
    */
   isPositionBlocked(map, x, y) {
-    // 畫布四周安全邊界
-    if (x < 95 || x > this.worldWidth - 95 || y < 120 || y > this.worldHeight - 80) {
+    if (x < 64 || x > this.worldWidth - 64 || y < 80 || y > this.worldHeight - 64) {
       return true;
     }
 
-    if (map === 'creek') {
-      // 微風清溪中央是湍急溪流 (x 約 1140 ~ 1560)，必須走中央木橋 (y: 650 ~ 890) 才能過河！
-      const inRiverX = x > 1150 && x < 1550;
-      const onWoodenBridgeY = y >= 640 && y <= 900;
-      if (inRiverX && !onWoodenBridgeY) {
-        return true;
-      }
-      // 上方瀑布岩石區
-      if (y < 290 && x > 1020 && x < 1680) return true;
-    } else if (map === 'coast') {
-      // 蔚藍海岸右下方為深海區域，但木棧道碼頭 (x: 2040..2560, y: 540..920) 可以行走去海釣！
-      const onPier = x >= 2020 && x <= 2580 && y >= 520 && y <= 930;
-      if (!onPier && x > 1280 && y > 860 && (x - 1280) + (y - 860) > 360) {
-        return true;
-      }
-    } else if (map === 'town') {
-      // 星光鎮中央噴泉池與蘑菇屋主體防穿牆
-      if (Math.hypot(x - 1585, y - 660) < 125) return true; // 噴泉水池中心
-      if (Math.hypot(x - 450, y - 500) < 145) return true;  // 蘑菇屋主體
-      if (Math.hypot(x - 2420, y - 470) < 120) return true; // 熊熊商店屋體
-    } else if (map === 'ranch') {
-      // 陽光牧場左上角紅穀倉屋體防穿牆
-      if (x > 310 && x < 980 && y > 140 && y < 430) return true;
+    const grids = window.COLLISION_GRIDS;
+    if (grids && grids[map]) {
+      const gx = Math.floor(x / this.cellSize);
+      const gy = Math.floor(y / this.cellSize);
+      if (gy < 0 || gy >= this.gridH || gx < 0 || gx >= this.gridW) return true;
+      return grids[map][gy].charCodeAt(gx) === 49; // '1' 代表不可通行障礙物
     }
-
     return false;
+  }
+
+  /**
+   * 若座標落在障礙物內，自動向外螺旋搜尋最近的可行走地面座標
+   */
+  findNearestWalkable(map, x, y) {
+    if (!this.isPositionBlocked(map, x, y)) return { x, y };
+    for (let r = 16; r <= 480; r += 16) {
+      for (let a = 0; a < Math.PI * 2; a += Math.PI / 8) {
+        const tx = x + Math.cos(a) * r;
+        const ty = y + Math.sin(a) * r;
+        if (!this.isPositionBlocked(map, tx, ty)) {
+          return { x: tx, y: ty };
+        }
+      }
+    }
+    return MAP_INFO[map] ? MAP_INFO[map].safeSpawn : { x: 1320, y: 920 };
   }
 
   bindEvents() {
@@ -268,9 +270,17 @@ class StarlightWorld {
       const wx = sx / cam.scale + cam.x;
       const wy = sy / cam.scale + cam.y;
 
-      this.player.targetX = Math.max(110, Math.min(this.worldWidth - 110, wx));
-      this.player.targetY = Math.max(130, Math.min(this.worldHeight - 90, wy));
-      this.addSparkleBurst(wx, wy, '#fff3b0', 6);
+      if (this.isPositionBlocked(this.currentMap, wx, wy)) {
+        // 點擊到海洋、河流或建築物時，自動引導至岸邊最近的可行走點並給予友善提示
+        const near = this.findNearestWalkable(this.currentMap, wx, wy);
+        this.player.targetX = near.x;
+        this.player.targetY = near.y;
+        this.addSparkleBurst(wx, wy, '#ff6fa5', 5);
+      } else {
+        this.player.targetX = wx;
+        this.player.targetY = wy;
+        this.addSparkleBurst(wx, wy, '#fff3b0', 6);
+      }
     });
   }
 
@@ -281,9 +291,9 @@ class StarlightWorld {
 
   getVehicleList() {
     const list = [
-      { id: 'walk', name: '步行', icon: '🚶‍♀️', speed: 4.5 },
-      { id: 'bike', name: '黃色腳踏車', icon: '🚲', speed: 6.2 },
-      { id: 'scooter', name: '酷炫粉紅機車', icon: '🛵', speed: 7.6 },
+      { id: 'walk', name: '步行', icon: '🚶‍♀️', speed: 4.6 },
+      { id: 'bike', name: '黃色腳踏車', icon: '🚲', speed: 6.4 },
+      { id: 'scooter', name: '酷炫粉紅機車', icon: '🛵', speed: 7.8 },
       { id: 'car_pink', name: '粉紅敞篷車', icon: '🚗', speed: 8.8 },
       { id: 'unicorn', name: '魔法獨角獸', icon: '🦄', speed: 9.4 }
     ];
@@ -305,13 +315,16 @@ class StarlightWorld {
   switchMap(targetMap, tx, ty) {
     if (!MAP_INFO[targetMap]) return;
     this.currentMap = targetMap;
-    this.portalCooldown = 45;
-    if (tx !== undefined && ty !== undefined) {
-      this.player.x = tx;
-      this.player.y = ty;
-      this.cat.x = tx - 60;
-      this.cat.y = ty + 10;
-    }
+    this.portalCooldown = 50;
+
+    const rawX = tx !== undefined ? tx : MAP_INFO[targetMap].safeSpawn.x;
+    const rawY = ty !== undefined ? ty : MAP_INFO[targetMap].safeSpawn.y;
+    const safePos = this.findNearestWalkable(targetMap, rawX, rawY);
+
+    this.player.x = safePos.x;
+    this.player.y = safePos.y;
+    this.cat.x = safePos.x - 50;
+    this.cat.y = safePos.y + 10;
     this.player.targetX = null;
     this.player.targetY = null;
     window.Sound.playStar();
@@ -323,9 +336,14 @@ class StarlightWorld {
   }
 
   getCamera() {
-    const scale = Math.max(this.canvas.width / 1920, this.canvas.height / 1080, 0.72);
-    const viewW = this.canvas.width / scale;
-    const viewH = this.canvas.height / scale;
+    // 針對手機、平板與電腦自動計算最佳視野縮放
+    const isMobile = this.canvas.width < 900 || this.canvas.height < 540;
+    const baseScale = isMobile
+      ? Math.max(this.canvas.width / 1500, this.canvas.height / 860, 0.48)
+      : Math.max(this.canvas.width / 1920, this.canvas.height / 1080, 0.72);
+
+    const viewW = this.canvas.width / baseScale;
+    const viewH = this.canvas.height / baseScale;
 
     let camX = this.player.x - viewW / 2;
     let camY = this.player.y - viewH / 2;
@@ -333,7 +351,7 @@ class StarlightWorld {
     camX = Math.max(0, Math.min(this.worldWidth - viewW, camX));
     camY = Math.max(0, Math.min(this.worldHeight - viewH, camY));
 
-    return { x: camX, y: camY, scale, viewW, viewH };
+    return { x: camX, y: camY, scale: baseScale, viewW, viewH };
   }
 
   addSparkleBurst(x, y, color = '#ffbe0b', count = 10) {
@@ -364,8 +382,65 @@ class StarlightWorld {
     });
   }
 
+  /**
+   * 嘗試移動角色並支援沿著斜向道路/橋樑/海岸線平滑滑動
+   */
+  tryMovePlayer(vx, vy) {
+    const px = this.player.x;
+    const py = this.player.y;
+    const m = this.currentMap;
+
+    // 1. 直接移動
+    if (!this.isPositionBlocked(m, px + vx, py + vy)) {
+      this.player.x += vx;
+      this.player.y += vy;
+      return true;
+    }
+
+    // 2. X 軸或 Y 軸單獨滑動
+    if (Math.abs(vx) > 0.1 && !this.isPositionBlocked(m, px + vx, py)) {
+      this.player.x += vx;
+      return true;
+    }
+    if (Math.abs(vy) > 0.1 && !this.isPositionBlocked(m, px, py + vy)) {
+      this.player.y += vy;
+      return true;
+    }
+
+    // 3. 針對 2.5D 斜向石子路與木橋，嘗試 ±35° 與 ±60° 切線滑動
+    const speed = Math.hypot(vx, vy);
+    const baseAngle = Math.atan2(vy, vx);
+    for (const offsetDeg of [35, -35, 60, -60]) {
+      const rad = baseAngle + (offsetDeg * Math.PI) / 180;
+      const sx = Math.cos(rad) * speed * 0.75;
+      const sy = Math.sin(rad) * speed * 0.75;
+      if (!this.isPositionBlocked(m, px + sx, py + sy)) {
+        this.player.x += sx;
+        this.player.y += sy;
+        return true;
+      }
+    }
+
+    // 完全被障礙物或海水擋住時停止點擊尋路並顯示輕微反饋
+    this.player.targetX = null;
+    this.player.targetY = null;
+    if (this.player.bumpCooldown <= 0) {
+      this.player.bumpCooldown = 45;
+      this.addSparkleBurst(px + vx * 2, py + vy * 2, '#72efdd', 4);
+    }
+    return false;
+  }
+
   update() {
     if (this.portalCooldown > 0) this.portalCooldown--;
+    if (this.player.bumpCooldown > 0) this.player.bumpCooldown--;
+
+    // 確保玩家不會因為任何原因卡在障礙物格內
+    if (this.isPositionBlocked(this.currentMap, this.player.x, this.player.y)) {
+      const safe = this.findNearestWalkable(this.currentMap, this.player.x, this.player.y);
+      this.player.x = safe.x;
+      this.player.y = safe.y;
+    }
 
     const vehicles = this.getVehicleList();
     const currentVehicle = vehicles[this.player.vehicleIndex] || vehicles[0];
@@ -403,28 +478,20 @@ class StarlightWorld {
     this.player.vx = dx * spd;
     this.player.vy = dy * spd;
 
-    // 分離 X / Y 軸碰撞檢測，讓角色遇到河岸或圍欄時可以順著邊緣滑動，不會卡死！
-    const nextX = this.player.x + this.player.vx;
-    const nextY = this.player.y + this.player.vy;
-
-    if (!this.isPositionBlocked(this.currentMap, nextX, this.player.y)) {
-      this.player.x = nextX;
-    }
-    if (!this.isPositionBlocked(this.currentMap, this.player.x, nextY)) {
-      this.player.y = nextY;
-    } else if (this.player.targetX !== null) {
-      // 點擊移動遇到河岸時自動停止目標尋路並提示走木橋
-      this.player.targetX = null;
-      this.player.targetY = null;
-    }
-
-    if (Math.abs(this.player.vx) > 0.2) {
+    // 更新人物移動朝向與上下斜角微傾：
+    // 往右移動 (vx > 0) -> facing = 1；往左移動 (vx < 0) -> facing = -1
+    if (Math.abs(this.player.vx) > 0.15) {
       this.player.facing = this.player.vx > 0 ? 1 : -1;
     }
 
-    const isMoving = Math.hypot(this.player.vx, this.player.vy) > 0.25;
+    const isMoving = Math.hypot(this.player.vx, this.player.vy) > 0.2;
     if (isMoving) {
+      this.tryMovePlayer(this.player.vx, this.player.vy);
+      // 根據垂直移動方向 (vy) 給予自然的車頭/身體俯仰角，讓朝上走或朝下走更有方向感！
+      const targetTilt = (this.player.vy / spd) * 0.16;
+      this.player.tiltAngle += (targetTilt - this.player.tiltAngle) * 0.25;
       this.player.bobPhase += 0.22;
+
       if (Math.random() < 0.45) {
         const trailColors = ['#ff9ebb', '#ffbe0b', '#72efdd', '#c79dff'];
         this.particles.push({
@@ -439,18 +506,17 @@ class StarlightWorld {
         });
       }
     } else {
+      this.player.tiltAngle *= 0.8;
       this.player.bobPhase += 0.06;
     }
 
-    // 檢查《哆啦A夢 牧場物語》風格：走到地圖邊緣路口時自然切換到相鄰區域！
     if (this.portalCooldown <= 0 && isMoving) {
       this.checkEdgeMapTransition();
     }
 
-    // 更新陽光牧場的小羊與小雞走動
     this.updateRanchAnimals();
 
-    // 更新飛天星光小貓
+    // 更新飛天小貓跟隨與朝向
     this.cat.wingPhase += 0.28;
     const targetCatX = this.player.x - this.player.facing * 75;
     const targetCatY = this.player.y - 25 + Math.sin(this.cat.wingPhase * 0.5) * 10;
@@ -469,9 +535,11 @@ class StarlightWorld {
     }
 
     if (nearestGem) {
-      this.cat.x += (nearestGem.gem.x - this.cat.x) * 0.18;
+      const cdx = nearestGem.gem.x - this.cat.x;
+      if (Math.abs(cdx) > 1) this.cat.facing = cdx > 0 ? 1 : -1;
+      this.cat.x += cdx * 0.18;
       this.cat.y += (nearestGem.gem.y - this.cat.y) * 0.18;
-      if (Math.hypot(nearestGem.gem.x - this.cat.x, nearestGem.gem.y - this.cat.y) < 38) {
+      if (Math.hypot(cdx, nearestGem.gem.y - this.cat.y) < 38) {
         this.gems.splice(nearestGem.index, 1);
         this.state.addCoins(10);
         this.state.addExp(5);
@@ -481,12 +549,16 @@ class StarlightWorld {
         if (this.gems.length < 8) this.spawnRandomGems();
       }
     } else {
-      this.cat.x += (targetCatX - this.cat.x) * 0.1;
-      this.cat.y += (targetCatY - this.cat.y) * 0.1;
+      const cdx = targetCatX - this.cat.x;
+      if (Math.abs(cdx) > 4) {
+        this.cat.facing = cdx > 0 ? 1 : -1;
+      } else {
+        this.cat.facing = this.player.facing;
+      }
+      this.cat.x += cdx * 0.12;
+      this.cat.y += (targetCatY - this.cat.y) * 0.12;
     }
-    this.cat.facing = this.player.facing;
 
-    // 寶箱喵嗚提示
     if (this.cat.meowCooldown > 0) this.cat.meowCooldown--;
     if (this.cat.speechTimer > 0) this.cat.speechTimer--;
 
@@ -517,7 +589,7 @@ class StarlightWorld {
       if (node.map !== this.currentMap) continue;
 
       const dist = Math.hypot(node.x - this.player.x, node.y - this.player.y);
-      if (dist < 115) {
+      if (dist < 120) {
         if (node.type === 'chest' && !node.opened) {
           node.opened = true;
           this.state.addShards(1);
@@ -545,7 +617,6 @@ class StarlightWorld {
       }
     }
 
-    // 更新粒子與飄字
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx;
@@ -578,35 +649,46 @@ class StarlightWorld {
     const x = this.player.x;
     const y = this.player.y;
     if (this.currentMap === 'town') {
-      if (y < 145 && x > 650 && x < 1250) this.switchMap('creek', 320, 650);
-      else if (x > 2610 && y < 550) this.switchMap('ranch', 320, 680);
-      else if (x > 2610 && y > 820) this.switchMap('coast', 380, 1100);
+      if (y < 145 && x > 450 && x < 1150) this.switchMap('creek', 320, 650);
+      else if (x > 2580 && y < 420) this.switchMap('ranch', 320, 680);
+      else if (x > 2580 && y > 840) this.switchMap('coast', 360, 1180);
     } else if (this.currentMap === 'creek') {
-      if (x < 140) this.switchMap('town', 960, 260);
-      else if (x > 2610) this.switchMap('ranch', 1460, 240);
+      if (x < 140) this.switchMap('town', 760, 260);
+      else if (x > 2580) this.switchMap('ranch', 1480, 220);
     } else if (this.currentMap === 'ranch') {
-      if (x < 140) this.switchMap('town', 2420, 320);
-      else if (y < 145) this.switchMap('creek', 2380, 650);
-      else if (y > 1410) this.switchMap('coast', 800, 300);
+      if (x < 140) this.switchMap('town', 2380, 280);
+      else if (y < 145) this.switchMap('creek', 2360, 680);
+      else if (y > 1400) this.switchMap('coast', 980, 820);
     } else if (this.currentMap === 'coast') {
-      if (x < 160) this.switchMap('town', 2420, 980);
+      if (x < 180) this.switchMap('town', 2420, 980);
     }
   }
 
   updateRanchAnimals() {
     for (const a of this.ranchAnimals) {
       a.timer++;
-      a.x += a.vx;
-      a.y += a.vy;
+      const nx = a.x + a.vx;
+      const ny = a.y + a.vy;
 
-      // 保持在陽光牧場中央木柵欄草地內 (x: 1020..1640, y: 600..990)
-      if (a.x < 1040 || a.x > 1620) a.vx *= -1;
-      if (a.y < 620 || a.y > 970) a.vy *= -1;
+      // 保持在陽光牧場中央木柵欄草地內且不穿過柵欄
+      if (nx < 1060 || nx > 1580 || this.isPositionBlocked('ranch', nx, a.y)) {
+        a.vx *= -1;
+      } else {
+        a.x = nx;
+      }
+      if (ny < 650 || ny > 950 || this.isPositionBlocked('ranch', a.x, ny)) {
+        a.vy *= -1;
+      } else {
+        a.y = ny;
+      }
+
       if (Math.random() < 0.015) {
         a.vx = (Math.random() - 0.5) * 1.3;
         a.vy = (Math.random() - 0.5) * 0.9;
       }
-      if (Math.abs(a.vx) > 0.05) a.facing = a.vx > 0 ? 1 : -1;
+      if (Math.abs(a.vx) > 0.05) {
+        a.facing = a.vx > 0 ? 1 : -1;
+      }
     }
   }
 
@@ -614,18 +696,14 @@ class StarlightWorld {
     let fedCount = 0;
     for (const a of this.ranchAnimals) {
       if (a.species === 'sheep') {
-        if (this.state.feeds.sheepFeed > 0) {
-          this.state.feeds.sheepFeed--;
-        }
+        if (this.state.feeds.sheepFeed > 0) this.state.feeds.sheepFeed--;
         a.hungry = false;
         this.state.ingredients.milk += 2;
         this.state.ingredients.wool += 1;
         fedCount++;
         this.addSparkleBurst(a.x, a.y, '#ff9ebb', 10);
       } else if (a.species === 'chicken' || a.species === 'chick') {
-        if (this.state.feeds.chickenFeed > 0) {
-          this.state.feeds.chickenFeed--;
-        }
+        if (this.state.feeds.chickenFeed > 0) this.state.feeds.chickenFeed--;
         a.hungry = false;
         this.state.ingredients.egg += 2;
         fedCount++;
@@ -649,7 +727,7 @@ class StarlightWorld {
 
   getNearestLandmark() {
     let best = null;
-    let bestDist = 240;
+    let bestDist = 250;
     for (const lm of this.landmarks) {
       if (lm.map !== this.currentMap) continue;
       const d = Math.hypot(lm.x - this.player.x, lm.y - this.player.y);
@@ -719,7 +797,7 @@ class StarlightWorld {
     const info = MAP_INFO[this.currentMap] || MAP_INFO.town;
     const mapImg = this.images[info.bgKey];
     const shardRatio = Math.min(1, this.state.shards / 5);
-    const sat = 75 + Math.round(shardRatio * 35);
+    const sat = 78 + Math.round(shardRatio * 32);
     ctx.filter = `saturate(${sat}%) brightness(${98 + Math.round(shardRatio * 4)}%)`;
 
     if (mapImg && mapImg.complete && mapImg.naturalWidth > 0) {
@@ -729,6 +807,20 @@ class StarlightWorld {
       ctx.fillRect(0, 0, this.worldWidth, this.worldHeight);
     }
     ctx.filter = 'none';
+
+    // 若開啟碰撞偵錯檢視
+    if (this.showCollisionDebug && window.COLLISION_GRIDS && window.COLLISION_GRIDS[this.currentMap]) {
+      const grid = window.COLLISION_GRIDS[this.currentMap];
+      ctx.fillStyle = 'rgba(255, 50, 80, 0.28)';
+      for (let gy = 0; gy < this.gridH; gy++) {
+        const row = grid[gy];
+        for (let gx = 0; gx < this.gridW; gx++) {
+          if (row.charCodeAt(gx) === 49) {
+            ctx.fillRect(gx * 16, gy * 16, 16, 16);
+          }
+        }
+      }
+    }
 
     // 2. 依各張地圖繪製專屬場景物件、動物與 NPC
     if (this.currentMap === 'town') {
@@ -769,7 +861,7 @@ class StarlightWorld {
     this.renderLandmarkSigns(ctx);
 
     // 6. 繪製主角與載具（佔畫面高度 1/6）+ 飛天小貓
-    const targetCharScreenH = this.canvas.height / 5.6;
+    const targetCharScreenH = Math.max(96, this.canvas.height / 5.4);
     const charWorldH = targetCharScreenH / cam.scale;
 
     if (this.state.unlockedPets.includes('calico')) {
@@ -808,10 +900,9 @@ class StarlightWorld {
 
   renderCreekFishingSpots(ctx) {
     const wave = Math.sin(Date.now() * 0.005) * 6;
-    // 在瀑布水潭與木橋旁繪製游動的魚影與溪釣浮標圖示
     const spots = [
-      { x: 1350, y: 760, label: '🎣 清溪木橋釣點 (點擊溪釣)' },
-      { x: 1120, y: 420, label: '🎣 瀑布水潭釣點 (櫻花鱒出沒)' }
+      { x: 1350, y: 780, label: '🎣 清溪木橋釣點 (點擊溪釣)' },
+      { x: 960, y: 480, label: '🎣 瀑布水潭釣點 (櫻花鱒出沒)' }
     ];
     for (const s of spots) {
       ctx.save();
@@ -825,20 +916,19 @@ class StarlightWorld {
   }
 
   renderRanchAnimalsAndCoop(ctx) {
-    // 繪製圍欄裡走動的小羊、咕咕雞與小黃雞
     for (const a of this.ranchAnimals) {
       const bob = Math.abs(Math.sin((Date.now() * 0.006) + a.timer)) * 7;
       ctx.save();
       ctx.translate(a.x, a.y - bob);
 
-      // 陰影
       ctx.fillStyle = 'rgba(94, 58, 36, 0.18)';
       ctx.beginPath();
       ctx.ellipse(0, bob + 6, 36, 12, 0, 0, Math.PI * 2);
       ctx.fill();
 
       ctx.save();
-      ctx.scale(a.facing, 1);
+      // 原圖小羊與小雞皆朝左 (-x)，因此當 a.facing === 1 (往右走) 時水平翻轉 (-1, 1)！
+      ctx.scale(-a.facing, 1);
       let spr = this.images.animal_sheep;
       let w = 115, h = 115;
       if (a.species === 'chicken') {
@@ -853,7 +943,6 @@ class StarlightWorld {
       }
       ctx.restore();
 
-      // 頭頂狀態泡泡：肚子餓顯示飼料袋，吃飽顯示愛心與雞蛋/羊毛
       const statusTxt = a.hungry
         ? (a.species === 'sheep' ? '💭 想吃牧草飼料' : '💭 想吃穀物飼料')
         : (a.species === 'sheep' ? '❤️ 產出羊奶與羊毛✨' : '❤️ 產出黃金雞蛋🥚');
@@ -861,34 +950,32 @@ class StarlightWorld {
       ctx.restore();
     }
 
-    // 穀倉前繪製飼料袋與雞蛋羊毛籃圖示
     if (this.images.item_feed_bag && this.images.item_feed_bag.complete) {
-      ctx.drawImage(this.images.item_feed_bag, 710, 410, 80, 95);
+      ctx.drawImage(this.images.item_feed_bag, 790, 490, 80, 95);
     }
     if (this.images.item_egg_wool && this.images.item_egg_wool.complete) {
-      ctx.drawImage(this.images.item_egg_wool, 800, 420, 88, 88);
+      ctx.drawImage(this.images.item_egg_wool, 880, 500, 88, 88);
     }
-    this.drawSimpleTag(ctx, 785, 395, '🏡 牧場雞舍與飼料倉 (點擊管理)');
+    this.drawSimpleTag(ctx, 860, 470, '🏡 牧場雞舍與飼料倉 (點擊管理)');
   }
 
   renderCoastNPCsAndPier(ctx) {
     const bob = Math.sin(Date.now() * 0.004) * 5;
     if (this.images.sailor_duck && this.images.sailor_duck.complete) {
-      ctx.drawImage(this.images.sailor_duck, 1800, 480 + bob, 105, 160);
-      this.drawSimpleTag(ctx, 1852, 465 + bob, '🦆 水手鴨船長 (2-1 貝殼派對)');
+      ctx.drawImage(this.images.sailor_duck, 1870, 600 + bob, 105, 160);
+      this.drawSimpleTag(ctx, 1922, 585 + bob, '🦆 水手鴨船長 (2-1 貝殼派對)');
     }
-    // 木棧道海釣點
     if (this.images.item_fishing_rod && this.images.item_fishing_rod.complete) {
-      ctx.drawImage(this.images.item_fishing_rod, 2220, 650 + bob, 95, 105);
+      ctx.drawImage(this.images.item_fishing_rod, 2310, 680 + bob, 95, 105);
     }
-    this.drawSimpleTag(ctx, 2265, 635 + bob, '🌊 木棧道海釣點 (星光鯛魚/鮪魚)');
+    this.drawSimpleTag(ctx, 2355, 665 + bob, '🌊 木棧道海釣點 (星光鯛魚/鮪魚)');
   }
 
   renderRestaurantExterior(ctx) {
     const tableImg = this.images.cafe_table;
     if (this.state.upgrades.umbrellaTables && tableImg && tableImg.complete) {
-      ctx.drawImage(tableImg, 640, 620, 140, 155);
-      ctx.drawImage(tableImg, 790, 560, 140, 155);
+      ctx.drawImage(tableImg, 660, 660, 140, 155);
+      ctx.drawImage(tableImg, 810, 600, 140, 155);
     }
 
     ctx.save();
@@ -917,14 +1004,13 @@ class StarlightWorld {
   renderTownNPCs(ctx) {
     const bob = Math.sin(Date.now() * 0.004) * 5;
     if (this.images.bread_bunny && this.images.bread_bunny.complete) {
-      ctx.drawImage(this.images.bread_bunny, 1690, 220 + bob, 95, 155);
-      this.drawSimpleTag(ctx, 1737, 205 + bob, '🐰 麵包兔 (1-2 幾何地磚)');
+      ctx.drawImage(this.images.bread_bunny, 1710, 380 + bob, 95, 155);
+      this.drawSimpleTag(ctx, 1757, 365 + bob, '🐰 麵包兔 (1-2 幾何地磚)');
     }
-    // 熊熊雜貨鋪前擺放飼料袋招牌
     if (this.images.item_feed_bag && this.images.item_feed_bag.complete) {
-      ctx.drawImage(this.images.item_feed_bag, 2280, 540 + bob * 0.5, 72, 88);
+      ctx.drawImage(this.images.item_feed_bag, 2120, 560 + bob * 0.5, 72, 88);
     }
-    this.drawSimpleTag(ctx, 2360, 420 + bob, '🐻 熊熊雜貨鋪 (買飼料/領養雞羊)');
+    this.drawSimpleTag(ctx, 2160, 540 + bob, '🐻 熊熊雜貨鋪 (買飼料/領養雞羊)');
   }
 
   drawSimpleTag(ctx, x, y, text) {
@@ -986,7 +1072,6 @@ class StarlightWorld {
     for (const lm of this.landmarks) {
       if (lm.map !== this.currentMap) continue;
 
-      // 常駐顯示路口方向指標牌 (Portals)
       if (lm.type === 'portal') {
         this.drawSimpleTag(ctx, lm.x, lm.y - 30, lm.title);
       }
@@ -1014,7 +1099,7 @@ class StarlightWorld {
         ctx.font = 'bold 18px "Microsoft JhengHei"';
         ctx.fillStyle = '#e04580';
         ctx.textAlign = 'center';
-        ctx.fillText(`✋ 空白鍵 / 互動鍵：${lm.actionLabel}`, 0, -112);
+        ctx.fillText(`✋ 點擊互動：${lm.actionLabel}`, 0, -112);
         ctx.restore();
       }
     }
@@ -1028,12 +1113,17 @@ class StarlightWorld {
     ctx.save();
     ctx.translate(this.player.x, this.player.y + bob);
 
+    // 地面陰影
     ctx.fillStyle = 'rgba(76, 40, 130, 0.22)';
     ctx.beginPath();
     ctx.ellipse(0, 12 - bob, charH * 0.36, charH * 0.14, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.scale(this.player.facing, 1);
+    // 重要修正：原圖 (witch_walk / witch_bike / witch_scooter / car_pink / unicorn) 皆面向左方 (-x)！
+    // 因此當 this.player.facing === 1 (向右移動) 時，使用 scale(-1, 1) 讓角色與車頭朝向正右方！
+    // 當 this.player.facing === -1 (向左移動) 時，使用 scale(1, 1) 讓角色與車頭朝向正左方！
+    ctx.scale(-this.player.facing, 1);
+    ctx.rotate(-this.player.tiltAngle);
 
     const hueShift = this.state.equipped.colorHue || 0;
     if (hueShift !== 0) {
@@ -1045,7 +1135,7 @@ class StarlightWorld {
       ctx.font = `${Math.round(charH * 0.34)}px sans-serif`;
       ctx.textAlign = 'center';
       const wingIcon = this.state.equipped.wings === 'fairy_wings' ? '🦋' : '🕊️';
-      ctx.fillText(wingIcon, -charH * 0.22, -charH * 0.48);
+      ctx.fillText(wingIcon, charH * 0.22, -charH * 0.48);
       ctx.restore();
     }
 
@@ -1131,16 +1221,19 @@ class StarlightWorld {
     let drawX = this.cat.x;
     let drawY = this.cat.y;
     let scale = 1;
+    let facingDir = this.cat.facing;
 
     if (isRiding) {
       drawX = this.player.x - this.player.facing * (catH * 0.55);
       drawY = this.player.y - catH * 0.48 + Math.sin(this.player.bobPhase) * 6;
       scale = 0.78;
+      facingDir = this.player.facing;
     }
 
     ctx.translate(drawX, drawY);
     ctx.save();
-    ctx.scale(this.cat.facing * scale, scale);
+    // 原圖 cat_flying.png 朝左 (-x)，因此向右 (facingDir=1) 時使用 -scale 鏡像翻轉朝右！
+    ctx.scale(-facingDir * scale, scale);
     const w = catH * (img.naturalWidth / img.naturalHeight);
     ctx.drawImage(img, -w / 2, -catH, w, catH);
 
@@ -1178,9 +1271,12 @@ class StarlightWorld {
     const bob = Math.sin(this.calicoCat.bobPhase) * 5;
     ctx.save();
     ctx.translate(this.calicoCat.x, this.calicoCat.y + bob);
+    ctx.save();
+    ctx.scale(-this.calicoCat.facing, 1);
     ctx.font = `${Math.round(h * 0.75)}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.fillText('🐈', 0, 0);
+    ctx.restore();
     this.drawSimpleTag(ctx, 0, -h * 0.75, '三花小貓');
     ctx.restore();
   }

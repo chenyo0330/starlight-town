@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>🌟 星光鎮：夢幻小魔女與飛天小貓 (Starlight Town)</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="game-container">
+    <!-- 2.5D 等角視角繪本世界畫布 -->
+    <canvas id="world-canvas"></canvas>
+
+    <!-- 頂部 HUD 狀態與導覽列 -->
+    <header id="top-hud">
+      <div class="hud-group">
+        <!-- ❤️ 血量條 -->
+        <div class="hud-pill">
+          <span>❤️</span>
+          <span data-zhuyin="體力"></span>
+          <div class="hud-bar-wrap">
+            <div id="hud-hp-fill" class="hud-bar-fill hp" style="width: 100%"></div>
+          </div>
+        </div>
+
+        <!-- ⭐ 經驗條 -->
+        <div class="hud-pill">
+          <span>⭐</span>
+          <strong id="hud-lv-val" style="color:#e04580;">Lv.1</strong>
+          <div class="hud-bar-wrap">
+            <div id="hud-exp-fill" class="hud-bar-fill exp" style="width: 20%"></div>
+          </div>
+        </div>
+
+        <!-- 🌟 星光碎片收集進度 -->
+        <div class="hud-pill">
+          <span>🌈</span>
+          <span data-zhuyin="星光碎片"></span>
+          <strong id="hud-shard-val" style="color:#9f67ff;">1 / 5</strong>
+        </div>
+
+        <!-- 💰 金幣 -->
+        <div class="hud-pill">
+          <span>💰</span>
+          <span data-zhuyin="金幣"></span>
+          <strong id="hud-coin-val" style="color:#d97706;">120</strong>
+        </div>
+      </div>
+
+      <!-- 右上角地圖切換與音樂設定 -->
+      <div class="hud-group">
+        <button class="hud-btn" onclick="window.GameApp.toggleMapSwitch()">
+          <span>🗺️</span>
+          <span data-zhuyin="切換地圖"></span>
+        </button>
+        <button id="bgm-toggle-btn" class="hud-btn" onclick="window.GameApp.toggleBGMButton()">
+          <span>🎵</span>
+          <span data-zhuyin="背景音樂"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- 🐾 右上角小貓代理店長自動賣餐通知列 -->
+    <div id="cat-toast-container"></div>
+
+    <!-- 🕹️ 左下角雙圈彩色觸控搖桿 -->
+    <div id="joystick-zone" title="拖曳搖桿移動主角">
+      <div class="joystick-outer-ring">
+        <div class="joystick-inner-ring"></div>
+        <div id="joystick-knob">⭐</div>
+      </div>
+    </div>
+
+    <!-- 🚲 右下角主功能操作按鈕群 -->
+    <div id="action-buttons">
+      <div class="action-row">
+        <button class="action-btn primary-gold" onclick="window.GameApp.openModal('restaurant-modal')">
+          <span class="btn-icon">🏡</span>
+          <span data-zhuyin="星光餐廳"></span>
+        </button>
+        <button class="action-btn primary-purple" onclick="window.GameApp.openModal('minigame-modal')">
+          <span class="btn-icon">🎮</span>
+          <span data-zhuyin="小遊戲關卡"></span>
+        </button>
+      </div>
+      <div class="action-row">
+        <button class="action-btn" onclick="window.GameApp.world.cycleVehicle()">
+          <span class="btn-icon">🚲</span>
+          <span data-zhuyin="上下車"></span>
+        </button>
+        <button class="action-btn" onclick="window.GameApp.world.triggerNearbyInteraction()">
+          <span class="btn-icon">✋</span>
+          <span id="interact-btn-label" data-zhuyin="互動"></span>
+        </button>
+        <button class="action-btn primary-pink" onclick="window.GameApp.openModal('dressing-modal')">
+          <span class="btn-icon">👚</span>
+          <span data-zhuyin="換裝"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 💬 國小低年級直式注音對話框 + 右上角小喇叭 🔊 TTS -->
+    <div id="dialogue-box" class="hidden">
+      <button class="tts-speaker-btn" onclick="window.GameApp.speakCurrentDialogue()" title="甜美女聲朗讀">
+        <span>🔊</span>
+        <span data-zhuyin="語音朗讀"></span>
+      </button>
+      <button class="dialogue-close-btn" onclick="window.GameApp.closeDialogue()" title="關閉對話">✕</button>
+
+      <div class="dialogue-avatar">
+        <img id="dialogue-avatar-img" src="assets/sprites/prop_bear_shop.png" alt="NPC" />
+      </div>
+      <div class="dialogue-content">
+        <div id="dialogue-speaker" class="dialogue-speaker"></div>
+        <div id="dialogue-text" class="dialogue-text"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       🏪 彈窗 1：星光餐廳雙重經營系統 (魔法親自經營 + 小貓代理掛機)
+       ========================================================================== -->
+  <div id="restaurant-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🏡</span>
+          <span data-zhuyin="星光餐廳雙重經營系統"></span>
+        </div>
+        <button class="hud-btn" onclick="window.GameApp.closeAllModals()">
+          <span>✕</span>
+          <span data-zhuyin="返回小鎮"></span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 左側：🌟 魔法親自下廚區 -->
+        <div class="rest-col-left">
+          <div class="cute-panel">
+            <div style="font-size:18px; color:#e04580;">
+              <span>🌟</span>
+              <span data-zhuyin="魔法親自經營（享 1.5 倍金幣 + 雙倍星星）"></span>
+            </div>
+            <div class="ingredient-bar">
+              <div class="ing-badge">
+                <div>🍓 <span data-zhuyin="草莓"></span></div>
+                <strong id="ing-strawberry" style="font-size:20px; color:#e04580;">3</strong>
+              </div>
+              <div class="ing-badge">
+                <div>🥛 <span data-zhuyin="鮮奶"></span></div>
+                <strong id="ing-milk" style="font-size:20px; color:#0077b6;">3</strong>
+              </div>
+              <div class="ing-badge">
+                <div>🌾 <span data-zhuyin="小麥粉"></span></div>
+                <strong id="ing-flour" style="font-size:20px; color:#d97706;">3</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="cooking-stage">
+            <div id="cook-step-hint" style="font-size:15px; margin-bottom:6px;"></div>
+            <canvas id="cooking-canvas" width="360" height="210"></canvas>
+            <div style="display:flex; gap:8px; margin-top:10px; width:100%; justify-content:center;">
+              <button class="action-btn primary-pink" onclick="window.Restaurant.startCooking()">
+                <span>🍧</span>
+                <span data-zhuyin="開始親自下廚"></span>
+              </button>
+              <button class="action-btn" onclick="window.Restaurant.giveStarterIngredients()">
+                <span>🧺</span>
+                <span data-zhuyin="補充食材"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 右側：🐾 小貓代理經營 & 🏙️ 餐廳擴建升級 -->
+        <div class="rest-col-right">
+          <div class="cute-panel" style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <img src="assets/sprites/cat_flying.png" alt="小貓店長" style="width:74px; height:74px; object-fit:contain;" />
+              <div>
+                <div style="font-size:18px; color:#4c2882;">
+                  <span>🐾🎩</span>
+                  <span data-zhuyin="飛天小貓代理店長（自動掛機賣餐）"></span>
+                </div>
+                <div style="margin-top:6px; font-size:16px;">
+                  <span data-zhuyin="玻璃櫥窗帕菲庫存："></span>
+                  <strong id="showcase-count" style="color:#e04580; font-size:22px;">2</strong>
+                  <span data-zhuyin="份"></span>
+                </div>
+              </div>
+            </div>
+
+            <div style="text-align:center;">
+              <div style="font-size:14px;">🎁 <span data-zhuyin="營業金幣寶箱"></span>: <strong id="chest-coins-val">50</strong></div>
+              <button class="action-btn primary-gold" style="margin-top:6px;" onclick="window.Restaurant.collectChestCoins()">
+                <span>💰</span>
+                <span data-zhuyin="領取寶箱紅利"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="cute-panel" style="flex:1;">
+            <div style="font-size:18px; margin-bottom:10px; color:#2a9d8f;">
+              <span>🏙️</span>
+              <span data-zhuyin="餐廳擴建與動物夥伴聘請"></span>
+            </div>
+
+            <div class="upgrade-list">
+              <div class="upgrade-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="assets/sprites/bread_bunny.png" alt="麵包兔" />
+                  <div>
+                    <div style="font-size:17px;" data-zhuyin="聘請「麵包兔」"></div>
+                    <div style="font-size:14px; color:#666;" data-zhuyin="定時自動提供新鮮小麥粉"></div>
+                  </div>
+                </div>
+                <button id="btn-upg-bunny" class="hud-btn" onclick="window.Restaurant.buyUpgrade('breadBunny', 100)"></button>
+              </div>
+
+              <div class="upgrade-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="assets/sprites/sailor_duck.png" alt="水手鴨" />
+                  <div>
+                    <div style="font-size:17px;" data-zhuyin="聘請「水手鴨」"></div>
+                    <div style="font-size:14px; color:#666;" data-zhuyin="定時自動運送香醇鮮奶"></div>
+                  </div>
+                </div>
+                <button id="btn-upg-duck" class="hud-btn" onclick="window.Restaurant.buyUpgrade('sailorDuck', 120)"></button>
+              </div>
+
+              <div class="upgrade-item">
+                <div style="display:flex; align-items:center; gap:10px;">
+                  <img src="assets/sprites/prop_cafe_table.png" alt="彩虹陽傘桌椅" />
+                  <div>
+                    <div style="font-size:17px;" data-zhuyin="擴建「露天彩虹陽傘桌椅」"></div>
+                    <div style="font-size:14px; color:#666;" data-zhuyin="吸引更多客人，帕菲售價提升！"></div>
+                  </div>
+                </div>
+                <button id="btn-upg-table" class="hud-btn" onclick="window.Restaurant.buyUpgrade('umbrellaTables', 150)"></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       🧠 彈窗 2：階梯式高難度小遊戲關卡設計 (Mini-Games 1-1 ~ 2-1)
+       ========================================================================== -->
+  <div id="minigame-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>🧠</span>
+          <span data-zhuyin="星光鎮階梯式小遊戲挑戰"></span>
+        </div>
+        <button class="hud-btn" onclick="window.GameApp.closeAllModals()">
+          <span>✕</span>
+          <span data-zhuyin="返回小鎮"></span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 關卡選擇大廳 (4 大關卡卡片) -->
+        <div id="mg-lobby-view" class="minigame-grid">
+          <div class="mg-card">
+            <div>
+              <span class="mg-tag" data-zhuyin="【空間與反應】多軌道動態跑酷"></span>
+              <h3 style="margin:10px 0 6px; font-size:21px;" data-zhuyin="1-1 冰淇淋快遞"></h3>
+              <p style="margin:0; font-size:15px;" data-zhuyin="三軌道快速滑動切換，躲避彩虹大球並配合按鈕跳過斜坡！"></p>
+            </div>
+            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:14px; color:#e04580;">⭐⭐⭐ <span data-zhuyin="粉紅花朵安全帽 + 50金幣"></span></span>
+              <button class="action-btn primary-pink" onclick="window.MiniGames.startGame('1-1')">
+                <span data-zhuyin="開始挑戰"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="mg-card">
+            <div>
+              <span class="mg-tag" data-zhuyin="【幾何與空間】3D 旋轉拼圖與光束"></span>
+              <h3 style="margin:10px 0 6px; font-size:21px;" data-zhuyin="1-2 幾何地磚"></h3>
+              <p style="margin:0; font-size:15px;" data-zhuyin="旋轉翻轉 3D 幾何塊嵌入缺口；旋轉水管將紅光+藍光組合成紫光通電！"></p>
+            </div>
+            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:14px; color:#9f67ff;">⭐⭐⭐ <span data-zhuyin="小黃鴨單車車籃 + 星光碎片x1"></span></span>
+              <button class="action-btn primary-purple" onclick="window.MiniGames.startGame('1-2')">
+                <span data-zhuyin="開始挑戰"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="mg-card">
+            <div>
+              <span class="mg-tag" data-zhuyin="【動態記憶】多重音律與位置旋轉"></span>
+              <h3 style="margin:10px 0 6px; font-size:21px;" data-zhuyin="1-3 失蹤的小貓"></h3>
+              <p style="margin:0; font-size:15px;" data-zhuyin="記憶 5 個音符光芒順序，序列播放後花朵會旋轉 180° 干擾相對位置！"></p>
+            </div>
+            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:14px; color:#2a9d8f;">⭐⭐⭐ <span data-zhuyin="跟隨寵物三花小貓 + 100金幣"></span></span>
+              <button class="action-btn primary-gold" onclick="window.MiniGames.startGame('1-3')">
+                <span data-zhuyin="開始挑戰"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="mg-card">
+            <div>
+              <span class="mg-tag" data-zhuyin="【數理邏輯】三數組合與天平平衡"></span>
+              <h3 style="margin:10px 0 6px; font-size:21px;" data-zhuyin="2-1 貝殼水果派對"></h3>
+              <p style="margin:0; font-size:15px;" data-zhuyin="魔法天平左邊重量 15，從飄過的貝殼中選出 3 個數字相加等於 15（如 4+5+6）！"></p>
+            </div>
+            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center;">
+              <span style="font-size:14px; color:#0077b6;">⭐⭐⭐ <span data-zhuyin="藍色海洋敞篷車 + 150金幣"></span></span>
+              <button class="action-btn primary-pink" onclick="window.MiniGames.startGame('2-1')">
+                <span data-zhuyin="開始挑戰"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 小遊戲進行中畫布舞台 -->
+        <div id="mg-active-stage" style="display:none;">
+          <div style="width:100%; display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <strong id="mg-stage-title" style="font-size:20px; color:#e04580;"></strong>
+              <div id="mg-stage-desc" style="font-size:15px; margin-top:2px;"></div>
+            </div>
+            <button class="hud-btn" onclick="window.MiniGames.backToLobby()">
+              <span>↩️</span>
+              <span data-zhuyin="返回關卡選單"></span>
+            </button>
+          </div>
+
+          <canvas id="mg-canvas" width="880" height="410"></canvas>
+
+          <div id="mg-controls-bar" style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       👗 彈窗 3：屋內換裝小屋系統 (左 30% 360° 旋轉舞台 / 右 70% 分頁衣櫥與調色盤)
+       ========================================================================== -->
+  <div id="dressing-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>👗</span>
+          <span data-zhuyin="小魔女閃亮魔法換裝小屋"></span>
+        </div>
+        <button class="hud-btn" onclick="window.GameApp.closeAllModals()">
+          <span>✕</span>
+          <span data-zhuyin="穿好出門"></span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <!-- 左側 (30%)：3D/2.5D 主角與小貓 360° 旋轉展示舞台 -->
+        <div class="dress-stage-left">
+          <div id="dress-stage-cheer" style="font-size:16px; color:#e04580; text-align:center;" data-zhuyin="360度旋轉舞台：點擊飾品試穿轉圈歡呼！"></div>
+          <canvas id="dress-stage-canvas" width="260" height="330"></canvas>
+          <div style="display:flex; gap:10px;">
+            <button class="hud-btn" onclick="window.DressingRoom.rotateStageManual(-45)">
+              <span>⟲</span>
+              <span data-zhuyin="左轉"></span>
+            </button>
+            <button class="hud-btn" onclick="window.DressingRoom.triggerSpinCheer('閃亮轉圈')">
+              <span>✨</span>
+              <span data-zhuyin="轉圈歡呼"></span>
+            </button>
+            <button class="hud-btn" onclick="window.DressingRoom.rotateStageManual(45)">
+              <span>⟳</span>
+              <span data-zhuyin="右轉"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 右側 (70%)：5 大部位分頁 + 4x2 大圖示卡片格 + 底部 7 色調色盤 -->
+        <div class="dress-wardrobe-right">
+          <div id="dress-tabs-bar" class="dress-tabs"></div>
+          <div id="dress-items-grid" class="dress-grid"></div>
+          <div class="color-palette-bar">
+            <div>
+              <span>🎨</span>
+              <span data-zhuyin="魔法調色盤（自由變換衣服顏色）："></span>
+            </div>
+            <div id="dress-color-swatches" class="swatch-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 載入遊戲腳本 -->
+  <script src="js/bopomofo.js"></script>
+  <script src="js/world.js"></script>
+  <script src="js/restaurant.js"></script>
+  <script src="js/minigames.js"></script>
+  <script src="js/dressing.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

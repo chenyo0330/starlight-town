@@ -1,0 +1,812 @@
+/* ==========================================================================
+   星光鎮：夢幻小魔女與飛天小貓 (Starlight Town)
+   專為 8 歲低年級打造的繪本柔和粉嫩視覺與直式注音 UI 樣式表
+   ========================================================================== */
+
+:root {
+  --pink-soft: #ffdae9;
+  --pink-vivid: #ff6fa5;
+  --pink-deep: #e04580;
+  --purple-soft: #e9d8fd;
+  --purple-magic: #9f67ff;
+  --purple-dark: #4c2882;
+  --yellow-butter: #fff3b0;
+  --yellow-gold: #ffbe0b;
+  --sky-pastel: #cfefff;
+  --mint-pastel: #c7f9cc;
+  --cream-bg: #fffaf5;
+  --brown-outline: #5e3a24;
+  --shadow-cute: 0 8px 24px rgba(159, 103, 255, 0.22);
+  --border-cute: 3px solid #5e3a24;
+}
+
+* {
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+  background: linear-gradient(180deg, #f3d5ff 0%, #cfefff 50%, #fff3d6 100%);
+  color: var(--brown-outline);
+}
+
+/* ==========================================================================
+   🔤 國小低年級直式注音排版系統 (Vertical Right Bopomofo Typography)
+   ========================================================================== */
+.zy-char {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin: 0 2px;
+  line-height: 1.15;
+}
+
+.zy-hanzi {
+  font-size: 1.15em;
+  font-weight: 800;
+  color: inherit;
+  line-height: 1.1;
+}
+
+.zy-ruby {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  margin-left: 1px;
+  position: relative;
+  min-width: 0.78em;
+}
+
+.zy-col {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.38em;
+  line-height: 1.02;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.zy-phonetic {
+  display: block;
+  transform: scale(0.96);
+}
+
+.zy-tone {
+  font-size: 0.36em;
+  font-weight: 900;
+  line-height: 1;
+  margin-left: -1px;
+  align-self: center;
+}
+
+.zy-light {
+  font-size: 0.38em;
+  font-weight: 900;
+  line-height: 0.6;
+  position: absolute;
+  top: -0.45em;
+  left: 35%;
+}
+
+.zy-plain {
+  display: inline;
+  font-weight: 800;
+  margin: 0 1px;
+}
+
+/* ==========================================================================
+   🎮 主畫面與 2.5D 畫布容器
+   ========================================================================== */
+#game-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#world-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   ✨ 頂部 HUD 狀態列 (血量、經驗、星光碎片、金幣、地圖、設定)
+   ========================================================================== */
+#top-hud {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+  z-index: 20;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hud-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+  flex-wrap: wrap;
+}
+
+.hud-pill {
+  background: rgba(255, 250, 245, 0.94);
+  border: 3px solid var(--brown-outline);
+  border-radius: 999px;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 0 rgba(94, 58, 36, 0.25), var(--shadow-cute);
+  font-size: 16px;
+}
+
+.hud-bar-wrap {
+  width: 105px;
+  height: 16px;
+  background: #f0e4d7;
+  border: 2px solid var(--brown-outline);
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+.hud-bar-fill {
+  height: 100%;
+  border-radius: 99px;
+  transition: width 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hud-bar-fill.hp {
+  background: linear-gradient(90deg, #ff5d8f, #ff9ebb);
+}
+
+.hud-bar-fill.exp {
+  background: linear-gradient(90deg, #ffb703, #TG00, #ffd166);
+  background: linear-gradient(90deg, #ff9f1c, #ffbf69);
+}
+
+.hud-bar-fill.rainbow {
+  background: linear-gradient(90deg, #ff6fa5, #ffbe0b, #72efdd, #9f67ff);
+}
+
+.hud-btn {
+  background: linear-gradient(180deg, #fff9fb 0%, #ffd6eb 100%);
+  border: 3px solid var(--brown-outline);
+  border-radius: 20px;
+  padding: 7px 15px;
+  font-size: 16px;
+  color: var(--brown-outline);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 5px 0 var(--brown-outline);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.hud-btn:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #ffffff 0%, #ffc4e1 100%);
+}
+
+.hud-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--brown-outline);
+}
+
+/* ==========================================================================
+   🐾 右上角小貓代理店長即時營收通知
+   ========================================================================== */
+#cat-toast-container {
+  position: absolute;
+  top: 76px;
+  right: 18px;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.cat-toast {
+  background: linear-gradient(135deg, #fff8e7 0%, #ffe3f1 100%);
+  border: 3px solid var(--brown-outline);
+  border-radius: 22px;
+  padding: 10px 16px;
+  box-shadow: 0 6px 16px rgba(94, 58, 36, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+  animation: toastSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), toastFadeOut 0.4s 3.6s forwards;
+}
+
+@keyframes toastSlideIn {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toastFadeOut {
+  to { transform: translateY(-15px); opacity: 0; }
+}
+
+/* ==========================================================================
+   🕹️ 左下角雙圈彩色搖桿 (Dual-Ring Colorful Joystick)
+   ========================================================================== */
+#joystick-zone {
+  position: absolute;
+  bottom: 24px;
+  left: 26px;
+  width: 156px;
+  height: 156px;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+}
+
+.joystick-outer-ring {
+  width: 144px;
+  height: 144px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 133, 179, 0.55),
+    rgba(255, 214, 112, 0.55),
+    rgba(138, 243, 212, 0.55),
+    rgba(147, 198, 255, 0.55),
+    rgba(202, 146, 255, 0.55),
+    rgba(255, 133, 179, 0.55)
+  );
+  border: 4px solid var(--brown-outline);
+  box-shadow: 0 6px 0 rgba(94, 58, 36, 0.35), inset 0 0 18px rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.joystick-inner-ring {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: rgba(255, 252, 247, 0.65);
+  border: 2.5px dashed var(--purple-magic);
+  pointer-events: none;
+}
+
+#joystick-knob {
+  position: absolute;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 32% 30%, #ffffff 0%, #ff99c8 45%, #9f67ff 100%);
+  border: 3.5px solid var(--brown-outline);
+  box-shadow: 0 5px 10px rgba(76, 40, 130, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  pointer-events: none;
+  transition: transform 0.05s linear;
+}
+
+/* ==========================================================================
+   🚲 右下角動作按鈕群 (上下車 / 互動 / 餐廳 / 小遊戲 / 換裝)
+   ========================================================================== */
+#action-buttons {
+  position: absolute;
+  bottom: 22px;
+  right: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+  z-index: 25;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.action-btn {
+  background: linear-gradient(180deg, #fffdf9 0%, #ffe0f0 100%);
+  border: 3.5px solid var(--brown-outline);
+  border-radius: 26px;
+  padding: 10px 18px;
+  min-width: 128px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 18px;
+  color: var(--brown-outline);
+  box-shadow: 0 6px 0 var(--brown-outline), 0 10px 20px rgba(0, 0, 0, 0.15);
+  transition: transform 0.12s, background 0.2s;
+}
+
+.action-btn.primary-pink {
+  background: linear-gradient(180deg, #ff9ebb 0%, #ff5d8f 100%);
+  color: #fff;
+}
+
+.action-btn.primary-purple {
+  background: linear-gradient(180deg, #c79dff 0%, #8b4fff 100%);
+  color: #fff;
+}
+
+.action-btn.primary-gold {
+  background: linear-gradient(180deg, #ffea85 0%, #ffbe0b 100%);
+}
+
+.action-btn:hover {
+  transform: scale(1.04) translateY(-2px);
+}
+
+.action-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--brown-outline);
+}
+
+.btn-icon {
+  font-size: 24px;
+}
+
+/* ==========================================================================
+   💬 底部繪本對話框 + 右上角小喇叭 🔊 TTS
+   ========================================================================== */
+#dialogue-box {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(740px, 64vw);
+  background: rgba(255, 252, 245, 0.97);
+  border: 4px solid var(--brown-outline);
+  border-radius: 30px;
+  padding: 18px 24px;
+  z-index: 30;
+  box-shadow: 0 8px 0 var(--brown-outline), 0 14px 32px rgba(76, 40, 130, 0.28);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  transition: opacity 0.25s, transform 0.25s;
+}
+
+#dialogue-box.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(30px);
+}
+
+.dialogue-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #ffe5f1, #e8d5ff);
+  border: 3px solid var(--brown-outline);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.dialogue-avatar img {
+  width: 90%;
+  height: 90%;
+  object-fit: contain;
+}
+
+.dialogue-content {
+  flex: 1;
+}
+
+.dialogue-speaker {
+  display: inline-block;
+  background: var(--pink-vivid);
+  color: #fff;
+  padding: 4px 14px;
+  border-radius: 99px;
+  border: 2.5px solid var(--brown-outline);
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.dialogue-text {
+  font-size: 21px;
+  line-height: 1.55;
+  color: var(--brown-outline);
+}
+
+.tts-speaker-btn {
+  position: absolute;
+  top: 12px;
+  right: 60px;
+  background: linear-gradient(180deg, #fff099 0%, #ffbe0b 100%);
+  border: 3px solid var(--brown-outline);
+  border-radius: 99px;
+  padding: 6px 14px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 3px 0 var(--brown-outline);
+}
+
+.tts-speaker-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--brown-outline);
+}
+
+.dialogue-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ffcad4;
+  border: 3px solid var(--brown-outline);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   🪟 通用彈出視窗 (星光餐廳 / 小遊戲大廳 / 換裝小屋)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(64, 34, 96, 0.52);
+  backdrop-filter: blur(5px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+
+.modal-overlay.hidden {
+  display: none !important;
+}
+
+.modal-card {
+  width: min(1060px, 95vw);
+  height: min(680px, 90vh);
+  background: var(--cream-bg);
+  border: 4px solid var(--brown-outline);
+  border-radius: 34px;
+  box-shadow: 0 10px 0 var(--brown-outline), 0 20px 50px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.modal-header {
+  background: linear-gradient(90deg, #ffb3d9 0%, #d8b4f8 50%, #a8e6cf 100%);
+  border-bottom: 4px solid var(--brown-outline);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-title {
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  gap: 20px;
+}
+
+/* ==========================================================================
+   🏪 4. 星光餐廳雙重經營介面 (Restaurant & Tycoon)
+   ========================================================================== */
+.rest-col-left {
+  width: 42%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.rest-col-right {
+  width: 58%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cute-panel {
+  background: #ffffff;
+  border: 3px solid var(--brown-outline);
+  border-radius: 24px;
+  padding: 14px 18px;
+  box-shadow: 0 5px 0 rgba(94, 58, 36, 0.16);
+}
+
+.ingredient-bar {
+  display: flex;
+  justify-content: space-around;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.ing-badge {
+  background: #fff5f8;
+  border: 2.5px solid var(--brown-outline);
+  border-radius: 18px;
+  padding: 8px 12px;
+  text-align: center;
+  flex: 1;
+}
+
+.cooking-stage {
+  background: linear-gradient(180deg, #fff0f6 0%, #f3e8ff 100%);
+  border: 3px dashed var(--pink-vivid);
+  border-radius: 22px;
+  padding: 14px;
+  text-align: center;
+  position: relative;
+  min-height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#cooking-canvas {
+  background: #ffffff;
+  border: 3px solid var(--brown-outline);
+  border-radius: 18px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.upgrade-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.upgrade-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fffdf7;
+  border: 2.5px solid var(--brown-outline);
+  border-radius: 18px;
+  padding: 10px 14px;
+  gap: 12px;
+}
+
+.upgrade-item img {
+  width: 54px;
+  height: 54px;
+  object-fit: contain;
+}
+
+/* ==========================================================================
+   🧠 5. 階梯式高難度小遊戲介面 (Mini-Games)
+   ========================================================================== */
+.minigame-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  width: 100%;
+}
+
+.mg-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fff4fa 100%);
+  border: 3.5px solid var(--brown-outline);
+  border-radius: 26px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 6px 0 rgba(94, 58, 36, 0.2);
+  transition: transform 0.15s;
+}
+
+.mg-card:hover {
+  transform: translateY(-4px);
+}
+
+.mg-tag {
+  display: inline-block;
+  background: var(--purple-soft);
+  border: 2px solid var(--brown-outline);
+  border-radius: 99px;
+  padding: 3px 12px;
+  font-size: 14px;
+}
+
+#mg-active-stage {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+#mg-canvas {
+  background: #fffdf9;
+  border: 3.5px solid var(--brown-outline);
+  border-radius: 24px;
+  max-width: 100%;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+  touch-action: none;
+}
+
+/* ==========================================================================
+   👗 6. 屋內換裝小屋介面 (Dressing Room: 左30%舞台 / 右70%衣櫥)
+   ========================================================================== */
+.dress-stage-left {
+  width: 32%;
+  background: radial-gradient(circle at 50% 35%, #ffffff 0%, #ffe3f1 55%, #e5d4ff 100%);
+  border: 3.5px solid var(--brown-outline);
+  border-radius: 28px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.dress-wardrobe-right {
+  width: 68%;
+  display: flex;
+  flex-direction: column;
+   justify-content: space-between;
+  gap: 12px;
+}
+
+.dress-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dress-tab {
+  flex: 1;
+  background: #fff5fa;
+  border: 3px solid var(--brown-outline);
+  border-radius: 18px;
+  padding: 8px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 4px 0 var(--brown-outline);
+}
+
+.dress-tab.active {
+  background: linear-gradient(180deg, #ff9ebb 0%, #ff6fa5 100%);
+  color: #fff;
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--brown-outline);
+}
+
+.dress-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 12px;
+  flex: 1;
+}
+
+.dress-card {
+  background: #ffffff;
+  border: 3px solid var(--brown-outline);
+  border-radius: 22px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.14s, background 0.14s;
+}
+
+.dress-card:hover {
+  transform: scale(1.04);
+  background: #fff7fb;
+}
+
+.dress-card.equipped {
+  background: #fff0f7;
+  border-color: var(--pink-deep);
+  box-shadow: 0 0 0 3px var(--pink-vivid), 0 5px 12px rgba(255, 111, 165, 0.3);
+}
+
+.dress-card.locked {
+  opacity: 0.65;
+  background: #f2ece9;
+}
+
+.dress-card-icon {
+  font-size: 38px;
+}
+
+.color-palette-bar {
+  background: #fff;
+  border: 3px solid var(--brown-outline);
+  border-radius: 22px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.swatch-list {
+  display: flex;
+  gap: 10px;
+}
+
+.color-swatch {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid var(--brown-outline);
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.color-swatch:hover, .color-swatch.active {
+  transform: scale(1.22);
+  box-shadow: 0 0 0 3px #fff, 0 0 0 6px var(--pink-vivid);
+}
+
+@media (max-width: 860px) {
+  .modal-body {
+    flex-direction: column;
+  }
+  .rest-col-left, .rest-col-right, .dress-stage-left, .dress-wardrobe-right {
+    width: 100%;
+  }
+  .minigame-grid {
+    grid-template-columns: 1fr;
+  }
+  .dress-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
